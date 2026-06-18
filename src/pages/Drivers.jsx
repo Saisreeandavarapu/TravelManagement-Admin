@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
 import { driverApi } from '../services/driverApi';
+import { userApi } from '../services/userApi';
 import Spinner from '../components/Spinner';
 import Modal from '../components/Modal';
 import {
   FiSearch, FiEye, FiEdit2, FiTrash2,
   FiToggleLeft, FiToggleRight, FiTruck, FiAward,
-  FiMail, FiPhone, FiHash
+  FiMail, FiPhone, FiHash, FiPlus
 } from 'react-icons/fi';
 
 const MOCK_DRIVERS = [
@@ -40,8 +41,15 @@ const Drivers = () => {
 
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({});
+
+  const [addForm, setAddForm] = useState({
+    firstName: '', lastName: '', email: '', password: '', phoneNumber: '',
+    licenseNumber: '', vehicleName: '', vehicleType: 'Van', experienceYears: '',
+    address: '', city: '', state: ''
+  });
 
   useEffect(() => { load(); }, []);
 
@@ -49,7 +57,14 @@ const Drivers = () => {
     setLoading(true);
     try {
       const data = await driverApi.allDrivers();
-      const list = Array.isArray(data) && data.length ? data : MOCK_DRIVERS;
+      const list = Array.isArray(data) && data.length ? data.map(d => ({
+        ...d,
+        driverName: d.driverName || (d.registration ? `${d.registration.firstName} ${d.registration.lastName}` : d.name || 'N/A'),
+        email: d.email || d.registration?.email || 'N/A',
+        phoneNumber: d.phoneNumber || d.registration?.phoneNumber || 'N/A',
+        experience: d.experience || (d.experienceYears ? `${d.experienceYears} Years` : '0 Years'),
+        vehicleNumber: d.vehicleNumber || 'N/A'
+      })) : MOCK_DRIVERS;
       setDrivers(list); setFiltered(list);
     } catch {
       setDrivers(MOCK_DRIVERS); setFiltered(MOCK_DRIVERS);
@@ -85,17 +100,28 @@ const Drivers = () => {
 
   const openEdit = (d) => {
     setSelected(d);
-    setForm({ ...d, driverName: d.driverName || d.name || '' });
+    setForm({ 
+      ...d, 
+      driverName: d.driverName || d.name || '',
+      experience: d.experience?.replace(' Years', '') || d.experienceYears || ''
+    });
     setEditOpen(true);
   };
 
   const handleEdit = async (e) => {
     e.preventDefault();
-    try { await driverApi.updateDriver(form.id, form); load(); } catch {
-      setDrivers(p => p.map(d => d.id === form.id ? { ...d, ...form } : d));
+    const payload = {
+      ...form,
+      experienceYears: parseInt(form.experience) || 0
+    };
+    try { 
+      await driverApi.updateDriver(form.id, payload); 
+      load(); 
+      showToast('Driver updated successfully', 'success');
+      setEditOpen(false);
+    } catch (err) {
+      showToast('Failed to update driver record', 'error');
     }
-    showToast('Driver updated successfully', 'success');
-    setEditOpen(false);
   };
 
   const handleDelete = async (id) => {
@@ -104,6 +130,45 @@ const Drivers = () => {
       setDrivers(p => p.filter(d => d.id !== id));
     }
     showToast('Driver deleted', 'success');
+  };
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Step 1: Register User account for Driver
+      const userResult = await userApi.registerUser({
+        firstName: addForm.firstName,
+        lastName: addForm.lastName,
+        email: addForm.email,
+        password: addForm.password,
+        phoneNumber: addForm.phoneNumber,
+        role: 'DRIVER'
+      });
+
+      // Step 2: Create Driver profile linked to userResult
+      await driverApi.addDriver({
+        registration: userResult,
+        licenseNumber: addForm.licenseNumber,
+        vehicleName: addForm.vehicleName,
+        vehicleType: addForm.vehicleType,
+        experienceYears: parseInt(addForm.experienceYears) || 0,
+        address: addForm.address,
+        city: addForm.city,
+        state: addForm.state,
+        status: 'ACTIVE'
+      });
+
+      showToast('Driver added successfully', 'success');
+      setAddOpen(false);
+      setAddForm({
+        firstName: '', lastName: '', email: '', password: '', phoneNumber: '',
+        licenseNumber: '', vehicleName: '', vehicleType: 'Van', experienceYears: '',
+        address: '', city: '', state: ''
+      });
+      load();
+    } catch (err) {
+      showToast(err.message || 'Failed to add driver profile.', 'error');
+    }
   };
 
   const Field = ({ label, value }) => (
@@ -121,8 +186,14 @@ const Drivers = () => {
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Driver Management</h1>
           <p className="text-sm text-slate-500 mt-0.5">Manage driver profiles, vehicles, licenses and status.</p>
         </div>
-        <div className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl px-4 py-2">
-          Total: <span className="text-primary-600 font-bold">{drivers.length}</span> Drivers
+        <div className="flex items-center gap-3">
+          <button onClick={() => setAddOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-xs font-semibold rounded-xl shadow-lg hover:bg-primary-600 transition-all active:scale-[0.98]">
+            <FiPlus className="w-4 h-4" /> Add Driver
+          </button>
+          <div className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl px-4 py-2">
+            Total: <span className="text-primary-600 font-bold">{drivers.length}</span> Drivers
+          </div>
         </div>
       </div>
 
@@ -159,9 +230,9 @@ const Drivers = () => {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-600 font-bold text-sm flex items-center justify-center flex-shrink-0 border border-violet-200">
-                          {(driver.driverName || driver.name || 'D')[0].toUpperCase()}
+                          {(driver.driverName || 'D')[0].toUpperCase()}
                         </div>
-                        <span className="font-semibold text-slate-800 text-sm whitespace-nowrap">{driver.driverName || driver.name}</span>
+                        <span className="font-semibold text-slate-800 text-sm whitespace-nowrap">{driver.driverName}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 text-xs text-slate-600 font-medium">{driver.email}</td>
@@ -220,10 +291,10 @@ const Drivers = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl">
               <div className="w-16 h-16 rounded-2xl bg-violet-200 text-violet-700 font-bold text-2xl flex items-center justify-center border-2 border-violet-300">
-                {(selected.driverName||selected.name||'D')[0].toUpperCase()}
+                {(selected.driverName||'D')[0].toUpperCase()}
               </div>
               <div>
-                <h4 className="text-lg font-bold text-slate-800">{selected.driverName||selected.name}</h4>
+                <h4 className="text-lg font-bold text-slate-800">{selected.driverName}</h4>
                 <p className="text-xs text-slate-500 mt-0.5">Driver ID: #{selected.id}</p>
                 <div className="mt-1.5"><StatusBadge status={selected.status} /></div>
               </div>
@@ -236,9 +307,104 @@ const Drivers = () => {
               <Field label="Vehicle Name" value={selected.vehicleName} />
               <Field label="Vehicle Number" value={selected.vehicleNumber} />
               <Field label="Vehicle Type" value={selected.vehicleType} />
+              {selected.address && <Field label="Address" value={selected.address} />}
+              {selected.city && <Field label="City" value={selected.city} />}
+              {selected.state && <Field label="State" value={selected.state} />}
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Add Modal */}
+      <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add New Driver Profile" size="xl">
+        <form onSubmit={handleAddSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            {/* Account fields */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-primary-600 border-b border-slate-100 pb-1">1. User Account Details</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">First Name</label>
+                  <input type="text" value={addForm.firstName} onChange={e=>setAddForm({...addForm,firstName:e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Last Name</label>
+                  <input type="text" value={addForm.lastName} onChange={e=>setAddForm({...addForm,lastName:e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Email Address</label>
+                <input type="email" value={addForm.email} onChange={e=>setAddForm({...addForm,email:e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Password</label>
+                <input type="password" value={addForm.password} onChange={e=>setAddForm({...addForm,password:e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Phone Number</label>
+                <input type="text" value={addForm.phoneNumber} onChange={e=>setAddForm({...addForm,phoneNumber:e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+              </div>
+            </div>
+
+            {/* Professional fields */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-primary-600 border-b border-slate-100 pb-1">2. Vehicle & Driving Details</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">License Number</label>
+                  <input type="text" value={addForm.licenseNumber} onChange={e=>setAddForm({...addForm,licenseNumber:e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Experience (Years)</label>
+                  <input type="number" value={addForm.experienceYears} onChange={e=>setAddForm({...addForm,experienceYears:e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Vehicle Name</label>
+                  <input type="text" value={addForm.vehicleName} onChange={e=>setAddForm({...addForm,vehicleName:e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Vehicle Type</label>
+                  <select value={addForm.vehicleType} onChange={e=>setAddForm({...addForm,vehicleType:e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none cursor-pointer focus:border-primary-400">
+                    {VEHICLE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Street Address</label>
+                <input type="text" value={addForm.address} onChange={e=>setAddForm({...addForm,address:e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">City</label>
+                  <input type="text" value={addForm.city} onChange={e=>setAddForm({...addForm,city:e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">State</label>
+                  <input type="text" value={addForm.state} onChange={e=>setAddForm({...addForm,state:e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button type="button" onClick={()=>setAddOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+            <button type="submit" className="px-5 py-2 text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 rounded-xl shadow-sm transition-colors">Add Driver</button>
+          </div>
+        </form>
       </Modal>
 
       {/* Edit Modal */}

@@ -34,9 +34,16 @@ export const userApi = {
     return response.data;
   },
 
+  // POST /registration/user
+  registerUser: async (userData) => {
+    const response = await api.post('/registration/user', userData);
+    return response.data;
+  },
+
   // GET /registration/count
   getUserCount: async () => {
     const response = await api.get('/registration/count');
     return response.data;
   }
 };
+

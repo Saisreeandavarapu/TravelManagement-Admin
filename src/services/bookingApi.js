@@ -45,6 +45,12 @@ export const bookingApi = {
     return response.data;
   },
 
+  // POST /Booking/add
+  addBooking: async (bookingData) => {
+    const response = await api.post('/Booking/add', bookingData);
+    return response.data;
+  },
+
   // GET /Booking/count
   getBookingCount: async () => {
     const response = await api.get('/Booking/count');

@@ -34,6 +34,12 @@ export const driverApi = {
     return response.data;
   },
 
+  // POST /Driver/details
+  addDriver: async (driverData) => {
+    const response = await api.post('/Driver/details', driverData);
+    return response.data;
+  },
+
   // GET /Driver/count
   getDriverCount: async () => {
     const response = await api.get('/Driver/count');

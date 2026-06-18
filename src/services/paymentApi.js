@@ -51,6 +51,12 @@ export const paymentApi = {
     return response.data;
   },
 
+  // POST /Payments/add
+  addPayment: async (paymentData) => {
+    const response = await api.post('/Payments/add', paymentData);
+    return response.data;
+  },
+
   // GET /Payments/rejectCount
   getRejectPaymentCount: async () => {
     const response = await api.get('/Payments/rejectCount');
