@@ -7,7 +7,7 @@ import Spinner from '../components/Spinner';
 import Modal from '../components/Modal';
 import {
   FiSearch, FiEye, FiTrash2, FiCalendar, FiFilter, FiUsers,
-  FiDollarSign, FiPlus, FiPackage
+  FiDollarSign, FiPlus, FiChevronRight, FiCheckCircle, FiClock, FiXCircle
 } from 'react-icons/fi';
 
 const MOCK_BOOKINGS = [
@@ -16,8 +16,6 @@ const MOCK_BOOKINGS = [
   { id: 'BK-1003', customerName: 'Clara Oswald', packageName: 'Maldives Island Escapade', travelDate: '2026-07-22', persons: 2, totalAmount: 2638, bookingStatus: 'CONFIRMED', bookingDate: '2026-06-07' },
   { id: 'BK-1004', customerName: 'David Tennant', packageName: 'Himalayan Adventure Trek', travelDate: '2026-09-02', persons: 3, totalAmount: 1707, bookingStatus: 'CANCELLED', bookingDate: '2026-06-08' },
   { id: 'BK-1005', customerName: 'Sarah Smith', packageName: 'Goa Golden Beach Tour', travelDate: '2026-10-05', persons: 2, totalAmount: 898, bookingStatus: 'PENDING', bookingDate: '2026-06-10' },
-  { id: 'BK-1006', customerName: 'James Kirk', packageName: 'Rajasthan Heritage Cruise', travelDate: '2026-11-01', persons: 5, totalAmount: 3595, bookingStatus: 'CONFIRMED', bookingDate: '2026-06-12' },
-  { id: 'BK-1007', customerName: 'Lena Okonkwo', packageName: 'Kerala Backwater Paradise', travelDate: '2026-08-20', persons: 2, totalAmount: 1358, bookingStatus: 'PENDING', bookingDate: '2026-06-13' },
 ];
 
 const MOCK_USERS = [
@@ -37,16 +35,19 @@ const MOCK_PACKAGES = [
 const STATUS_OPTIONS = ['PENDING', 'CONFIRMED', 'CANCELLED'];
 
 const StatusBadge = ({ status }) => {
-  const config = {
-    CONFIRMED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    PENDING: 'bg-amber-50 text-amber-700 border-amber-200',
-    CANCELLED: 'bg-rose-50 text-rose-700 border-rose-200',
-  };
-  const dot = { CONFIRMED: 'bg-emerald-500', PENDING: 'bg-amber-500', CANCELLED: 'bg-rose-500' };
-  const key = status?.toUpperCase();
+  const isConfirmed = status?.toUpperCase() === 'CONFIRMED';
+  const isPending = status?.toUpperCase() === 'PENDING';
+
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config[key] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dot[key] || 'bg-slate-400'}`} />
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border ${
+      isConfirmed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+      isPending ? 'bg-amber-50 text-amber-700 border-amber-200' :
+      'bg-rose-50 text-rose-700 border-rose-200'
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${
+        isConfirmed ? 'bg-emerald-500' :
+        isPending ? 'bg-amber-500' : 'bg-rose-500'
+      }`} />
       {status || 'PENDING'}
     </span>
   );
@@ -71,13 +72,12 @@ const Bookings = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
-  const PER_PAGE = 7;
+  const PER_PAGE = 8;
 
   const [viewOpen, setViewOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  // Add booking form state
   const [addForm, setAddForm] = useState(EMPTY_ADD_FORM);
   const [users, setUsers] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -120,7 +120,6 @@ const Bookings = () => {
     } finally { setLoadingMeta(false); }
   };
 
-  // Auto-calculate total amount when package or persons change
   const handleAddChange = (key, value) => {
     const next = { ...addForm, [key]: value };
     const selectedPkg = packages.find(p => String(p.id) === String(key === 'packageId' ? value : next.packageId));
@@ -197,33 +196,64 @@ const Bookings = () => {
     CANCELLED: 'text-rose-700 border-rose-200 bg-rose-50',
   }[s?.toUpperCase()] || 'text-slate-700 border-slate-200 bg-white');
 
+  // Stats summaries
+  const totalCount = bookings.length;
+  const confirmedCount = bookings.filter(b => b.bookingStatus?.toUpperCase() === 'CONFIRMED').length;
+  const pendingCount = bookings.filter(b => b.bookingStatus?.toUpperCase() === 'PENDING').length;
+  const cancelledCount = bookings.filter(b => b.bookingStatus?.toUpperCase() === 'CANCELLED').length;
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Booking Operations</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Track reservations, manage travel statuses and booking records.</p>
+          <h1 className="font-display text-2xl font-black text-slate-800 tracking-tight">Booking Operations</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Track reservations, manage travel statuses, and booking invoices.</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={openAddModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-xs font-semibold rounded-xl shadow-lg hover:bg-primary-600 transition-all active:scale-[0.98]">
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}>
             <FiPlus className="w-4 h-4" /> Add Booking
           </button>
-          <div className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl px-4 py-2">
-            Total: <span className="text-primary-600 font-bold">{bookings.length}</span> Bookings
+          <div className="px-4 py-2.5 rounded-xl text-xs font-bold"
+            style={{ background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe' }}>
+            {totalCount} Total Bookings
           </div>
         </div>
       </div>
 
-      {/* Search + Filter */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:border-primary-400 focus-within:ring-1 focus-within:ring-primary-400 transition-all">
-          <FiSearch className="text-slate-400 w-4 h-4 flex-shrink-0" />
-          <input className="bg-transparent outline-none text-sm w-full placeholder-slate-400 text-slate-700"
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Total', value: totalCount, icon: FiPlus, color: '#6366f1', bg: '#eef2ff' },
+          { label: 'Confirmed', value: confirmedCount, icon: FiCheckCircle, color: '#10b981', bg: '#d1fae5' },
+          { label: 'Pending', value: pendingCount, icon: FiClock, color: '#f59e0b', bg: '#fffbeb' },
+          { label: 'Cancelled', value: cancelledCount, icon: FiXCircle, color: '#f43f5e', bg: '#fee2e2' },
+        ].map(card => (
+          <div key={card.label} className="card p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-base"
+              style={{ background: card.bg, color: card.color }}>
+              <card.icon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{card.label}</p>
+              <p className="text-lg font-black text-slate-800 leading-none mt-1">{card.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Search & Filter */}
+      <div className="card p-4 flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
+          style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <FiSearch className="text-slate-450 w-4 h-4 flex-shrink-0" />
+          <input className="bg-transparent outline-none text-sm w-full text-slate-700 placeholder-slate-400"
             placeholder="Search by booking ID, customer, package..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+        <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5"
+          style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
           <FiFilter className="text-slate-400 w-4 h-4" />
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
             className="bg-transparent outline-none text-sm text-slate-700 font-medium cursor-pointer">
@@ -235,44 +265,50 @@ const Bookings = () => {
 
       {/* Table */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm h-64 flex items-center justify-center"><Spinner /></div>
+        <div className="card h-64 flex items-center justify-center"><Spinner /></div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[950px]">
+            <table className="w-full text-left min-w-[980px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  {['Booking ID','Customer Name','Package Name','Travel Date','Persons','Total Amount','Booking Status','Booking Date','Actions'].map(h => (
-                    <th key={h} className="px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">{h}</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  {['Booking ID','Customer','Package Name','Travel Date','Persons','Total Amount','Booking Status','Booking Date','Actions'].map(h => (
+                    <th key={h} className="px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody>
                 {pageItems.length > 0 ? pageItems.map(b => (
-                  <tr key={b.id} className="hover:bg-blue-50/20 transition-colors group">
-                    <td className="px-4 py-3 font-mono text-xs font-bold text-primary-600">{b.id}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-800 text-sm">{b.customerName}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 max-w-[160px]"><p className="truncate">{b.packageName}</p></td>
-                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                      <span className="flex items-center gap-1"><FiCalendar className="w-3 h-3 text-slate-400"/>{formatDate(b.travelDate)}</span>
+                  <tr key={b.id} className="table-row-hover transition-colors group" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td className="px-5 py-3.5 font-mono text-xs font-bold text-indigo-600">#{b.id}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white"
+                          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)' }}>
+                          {(b.customerName || 'C')[0].toUpperCase()}
+                        </div>
+                        <span className="text-sm font-bold text-slate-800">{b.customerName}</span>
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-center font-semibold text-slate-700">
-                      <span className="flex items-center gap-1"><FiUsers className="w-3 h-3 text-slate-400"/>{b.persons || b.numberOfPersons}</span>
+                    <td className="px-5 py-3.5 text-sm font-medium text-slate-700 max-w-[180px] truncate">{b.packageName}</td>
+                    <td className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
+                      <span className="flex items-center gap-1.5"><FiCalendar className="w-3.5 h-3.5 text-slate-400"/>{formatDate(b.travelDate)}</span>
                     </td>
-                    <td className="px-4 py-3 font-bold text-slate-800 font-mono text-sm">${(b.totalAmount || 0).toLocaleString()}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-5 py-3.5 font-semibold text-slate-700">
+                      <span className="flex items-center gap-1.5"><FiUsers className="w-3.5 h-3.5 text-slate-400"/>{b.persons || b.numberOfPersons}</span>
+                    </td>
+                    <td className="px-5 py-3.5 font-black text-slate-800 font-mono text-sm">${(b.totalAmount || 0).toLocaleString()}</td>
+                    <td className="px-5 py-3.5">
                       <select value={b.bookingStatus || 'PENDING'} onChange={e => handleStatusChange(b.id, e.target.value)}
-                        className={`px-2 py-1 text-xs font-semibold rounded-lg border cursor-pointer focus:outline-none transition-colors ${statusSelectColor(b.bookingStatus)}`}>
+                        className={`px-3 py-1.5 text-[11px] font-bold rounded-xl border cursor-pointer focus:outline-none transition-colors ${statusSelectColor(b.bookingStatus)}`}>
                         {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
-                      <span className="flex items-center gap-1"><FiCalendar className="w-3 h-3 text-slate-300"/>{formatDate(b.bookingDate)}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setSelected(b); setViewOpen(true); }} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors" title="View"><FiEye className="w-4 h-4"/></button>
-                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors" title="Delete"><FiTrash2 className="w-4 h-4"/></button>
+                    <td className="px-5 py-3.5 text-xs text-slate-400 font-mono whitespace-nowrap">{formatDate(b.bookingDate)}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => { setSelected(b); setViewOpen(true); }} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors" title="View Details"><FiEye className="w-4 h-4"/></button>
+                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors" title="Delete Booking"><FiTrash2 className="w-4 h-4"/></button>
                       </div>
                     </td>
                   </tr>
@@ -282,33 +318,36 @@ const Bookings = () => {
               </tbody>
             </table>
           </div>
+
           {totalPages > 1 && (
-            <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
-              <span className="text-xs text-slate-500 font-medium">{(currentPage-1)*PER_PAGE+1}–{Math.min(currentPage*PER_PAGE,filtered.length)} of {filtered.length}</span>
+            <div className="px-5 py-3.5 flex items-center justify-between flex-wrap gap-2"
+              style={{ borderTop: '1px solid #f1f5f9', background: '#fafafa' }}>
+              <span className="text-xs text-slate-400 font-medium">{(currentPage-1)*PER_PAGE+1}–{Math.min(currentPage*PER_PAGE,filtered.length)} of {filtered.length} bookings</span>
               <div className="flex gap-1">
-                <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1} className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Prev</button>
+                <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1} className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Prev</button>
                 {Array.from({length:totalPages},(_,i)=>(
-                  <button key={i} onClick={()=>setCurrentPage(i+1)} className={`w-7 h-7 text-xs font-bold rounded-lg border ${currentPage===i+1?'bg-primary-500 border-primary-500 text-white':'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{i+1}</button>
+                  <button key={i} onClick={()=>setCurrentPage(i+1)} className={`w-7 h-7 text-xs font-bold rounded-lg border ${currentPage===i+1?'bg-indigo-500 border-indigo-500 text-white':'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{i+1}</button>
                 ))}
-                <button onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))} disabled={currentPage===totalPages} className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Next</button>
+                <button onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))} disabled={currentPage===totalPages} className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Next</button>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* View Modal */}
+      {/* View Modal (Receipt style) */}
       <Modal isOpen={viewOpen} onClose={() => setViewOpen(false)} title="Booking Invoice Details" size="lg">
         {selected && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 rounded-2xl">
+          <div className="space-y-5">
+            <div className="flex items-center justify-between p-5 bg-gradient-to-r from-indigo-50 to-sky-50 border border-indigo-100 rounded-2xl">
               <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking Reference</p>
-                <h4 className="text-xl font-extrabold text-primary-600 font-mono">{selected.id}</h4>
+                <p className="text-[9px] uppercase font-black text-slate-450 tracking-wider">Booking Ref ID</p>
+                <h4 className="text-xl font-black text-indigo-600 font-mono">#{selected.id}</h4>
               </div>
               <StatusBadge status={selected.bookingStatus} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <div className="grid grid-cols-2 gap-3.5">
               {[
                 ['Customer Name', selected.customerName],
                 ['Package Name', selected.packageName],
@@ -317,9 +356,9 @@ const Bookings = () => {
                 ['Number of Persons', selected.persons || selected.numberOfPersons],
                 ['Total Amount', `$${(selected.totalAmount||0).toLocaleString()}`],
               ].map(([l, v]) => (
-                <div key={l} className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                <div key={l} className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{l}</p>
-                  <p className="text-sm font-semibold text-slate-800">{v || '—'}</p>
+                  <p className="text-sm font-semibold text-slate-850">{v || '—'}</p>
                 </div>
               ))}
             </div>
@@ -333,9 +372,8 @@ const Bookings = () => {
           <div className="h-48 flex items-center justify-center"><Spinner /></div>
         ) : (
           <form onSubmit={handleAddSubmit} className="space-y-4">
-            {/* Customer Selection */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Customer</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Select Customer</label>
               <select
                 value={addForm.customerId}
                 onChange={e => handleAddChange('customerId', e.target.value)}
@@ -351,9 +389,8 @@ const Bookings = () => {
               </select>
             </div>
 
-            {/* Package Selection */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Package</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Select Package</label>
               <select
                 value={addForm.packageId}
                 onChange={e => handleAddChange('packageId', e.target.value)}
@@ -370,22 +407,20 @@ const Bookings = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Travel Date */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Travel Date</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Travel Date</label>
                 <input
                   type="date"
                   value={addForm.travelDate}
                   onChange={e => handleAddChange('travelDate', e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none cursor-pointer"
                   required
                 />
               </div>
 
-              {/* Number of Persons */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Number of Persons</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Number of Persons</label>
                 <input
                   type="number"
                   min="1"
@@ -398,10 +433,9 @@ const Bookings = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Auto-calculated Total */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Total Amount <span className="text-emerald-600">(auto)</span>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">
+                  Total Amount <span className="text-emerald-600 font-semibold">(auto)</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">$</span>
@@ -409,14 +443,14 @@ const Bookings = () => {
                     type="number"
                     value={addForm.totalAmount}
                     onChange={e => setAddForm({ ...addForm, totalAmount: e.target.value })}
-                    className="w-full bg-emerald-50 border border-emerald-200 rounded-xl pl-7 pr-3 py-2.5 text-sm font-bold text-emerald-700 focus:border-emerald-400 outline-none"
+                    className="w-full bg-emerald-50 border border-emerald-200 rounded-xl pl-7 pr-3 py-2.5 text-sm font-bold text-emerald-700 focus:border-emerald-455 outline-none cursor-not-allowed"
+                    disabled
                   />
                 </div>
               </div>
 
-              {/* Status */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Booking Status</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Booking Status</label>
                 <select
                   value={addForm.bookingStatus}
                   onChange={e => setAddForm({ ...addForm, bookingStatus: e.target.value })}
@@ -427,24 +461,19 @@ const Bookings = () => {
               </div>
             </div>
 
-            {/* Summary Card */}
             {addForm.customerId && addForm.packageId && (
-              <div className="p-3 bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 rounded-xl">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Booking Summary</p>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-600 font-medium">
-                    {users.find(u => String(u.id) === String(addForm.customerId))?.firstName || ''}{' '}
-                    {users.find(u => String(u.id) === String(addForm.customerId))?.lastName || ''} →{' '}
-                    {packages.find(p => String(p.id) === String(addForm.packageId))?.title || ''}
-                  </span>
-                  <span className="font-bold text-emerald-600">${addForm.totalAmount || 0}</span>
-                </div>
+              <div className="p-3 bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 rounded-xl flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-semibold truncate max-w-[280px]">
+                  {users.find(u => String(u.id) === String(addForm.customerId))?.firstName || ''} →{' '}
+                  {packages.find(p => String(p.id) === String(addForm.packageId))?.title || ''}
+                </span>
+                <span className="font-black text-emerald-600">${addForm.totalAmount || 0}</span>
               </div>
             )}
 
             <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-              <button type="button" onClick={() => setAddOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-              <button type="submit" className="px-5 py-2 text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 rounded-xl shadow-sm transition-colors">Create Booking</button>
+              <button type="button" onClick={() => setAddOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+              <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Create Booking</button>
             </div>
           </form>
         )}

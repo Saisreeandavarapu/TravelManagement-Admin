@@ -4,7 +4,7 @@ import { imageApi } from '../services/imageApi';
 import { packageApi } from '../services/packageApi';
 import Spinner from '../components/Spinner';
 import Modal from '../components/Modal';
-import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiLink, FiUpload, FiExternalLink, FiImage } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiLink, FiExternalLink, FiImage, FiGrid, FiList } from 'react-icons/fi';
 
 const MOCK_IMAGES = [
   { id: 1, packageId: 1, packageName: 'Goa Golden Beach Tour', imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=70' },
@@ -30,7 +30,8 @@ const Images = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const PER_PAGE = 8;
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const PER_PAGE = 12; // grid handles more images nicely
 
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -110,117 +111,148 @@ const Images = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Package Images</h1>
+          <h1 className="font-display text-2xl font-black text-slate-800 tracking-tight">Package Images</h1>
           <p className="text-sm text-slate-500 mt-0.5">Manage photo gallery linked to travel packages.</p>
         </div>
-        <button onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-xs font-semibold rounded-xl shadow-lg hover:bg-primary-600 transition-all active:scale-[0.98]">
-          <FiPlus className="w-4 h-4" /> Add Image
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`} title="Gallery view"><FiGrid className="w-4 h-4" /></button>
+            <button onClick={() => setViewMode('table')} className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`} title="Table list"><FiList className="w-4 h-4" /></button>
+          </div>
+          <button onClick={() => setAddOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}>
+            <FiPlus className="w-4 h-4" /> Add Image
+          </button>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:border-primary-400 focus-within:ring-1 focus-within:ring-primary-400 transition-all">
+      <div className="card p-4">
+        <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
           <FiSearch className="text-slate-400 w-4 h-4 flex-shrink-0" />
-          <input className="bg-transparent outline-none text-sm w-full placeholder-slate-400 text-slate-700"
-            placeholder="Search by image ID, package ID, package name, URL..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="bg-transparent outline-none text-sm w-full placeholder-slate-450 text-slate-705"
+            placeholder="Search by package, image URL, image ID..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
-      {/* Table */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm h-64 flex items-center justify-center"><Spinner /></div>
+        <div className="card h-64 flex items-center justify-center"><Spinner /></div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[700px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  {['ID', 'Package ID', 'Package Name', 'Image Preview', 'Image URL', 'Actions'].map(h => (
-                    <th key={h} className="px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {pageItems.length > 0 ? pageItems.map(img => (
-                  <tr key={img.id} className="hover:bg-blue-50/20 transition-colors group">
-                    <td className="px-4 py-3 font-mono text-xs font-bold text-slate-400">#{img.id}</td>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-primary-600">#{img.packageId}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-800 text-sm max-w-[180px]">
-                      <p className="truncate">{img.packageName || getPackageName(img.packageId)}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="relative group/img">
-                        <img
-                          src={img.imageUrl}
-                          alt="preview"
-                          className="w-20 h-14 object-cover rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:scale-105 transition-transform"
-                          onError={e => { e.target.src = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=200&q=60'; }}
-                        />
-                        <a href={img.imageUrl} target="_blank" rel="noopener noreferrer"
-                          className="absolute inset-0 flex items-center justify-center bg-slate-900/40 rounded-xl opacity-0 group-hover/img:opacity-100 transition-opacity">
-                          <FiExternalLink className="w-4 h-4 text-white" />
-                        </a>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 max-w-[220px]">
-                      <p className="text-xs text-slate-500 font-mono truncate" title={img.imageUrl}>{img.imageUrl}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(img)} className="p-1.5 rounded-lg text-primary-500 hover:bg-primary-50 transition-colors" title="Edit"><FiEdit2 className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete(img.id)} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors" title="Delete"><FiTrash2 className="w-4 h-4" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={6} className="py-16 text-center">
-                      <FiImage className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                      <p className="text-slate-400 font-medium">No images found.</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {totalPages > 1 && (
-            <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
-              <span className="text-xs text-slate-500 font-medium">{(currentPage-1)*PER_PAGE+1}–{Math.min(currentPage*PER_PAGE,filtered.length)} of {filtered.length}</span>
-              <div className="flex gap-1">
-                <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1} className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Prev</button>
-                {Array.from({length:totalPages},(_,i)=>(
-                  <button key={i} onClick={()=>setCurrentPage(i+1)} className={`w-7 h-7 text-xs font-bold rounded-lg border ${currentPage===i+1?'bg-primary-500 border-primary-500 text-white':'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{i+1}</button>
-                ))}
-                <button onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))} disabled={currentPage===totalPages} className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Next</button>
+        <>
+          {viewMode === 'grid' ? (
+            /* Gallery / Grid View */
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              {pageItems.length > 0 ? pageItems.map(img => (
+                <div key={img.id} className="card overflow-hidden group relative flex flex-col justify-between">
+                  <div className="aspect-[4/3] w-full overflow-hidden relative bg-slate-100">
+                    <img src={img.imageUrl} alt="preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={e => { e.target.src = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=300&q=70'; }} />
+                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <a href={img.imageUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/95 rounded-xl text-slate-700 hover:text-indigo-600 transition-all shadow-md">
+                        <FiExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-white border-t border-slate-100">
+                    <p className="text-[10px] font-bold text-indigo-600 font-mono mb-1">#{img.packageId || 'No ID'}</p>
+                    <p className="text-xs font-bold text-slate-800 line-clamp-1 mb-3">{img.packageName || getPackageName(img.packageId)}</p>
+                    <div className="flex justify-end gap-1.5 pt-2 border-t border-slate-50">
+                      <button onClick={() => openEdit(img)} className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors" title="Edit"><FiEdit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(img.id)} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors" title="Delete"><FiTrash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                <div className="col-span-full py-16 text-center text-slate-400 font-medium">
+                  <FiImage className="w-10 h-10 text-slate-350 mx-auto mb-2" />
+                  No images found.
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Table View */
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[700px]">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      {['ID', 'Package ID', 'Package Name', 'Image Preview', 'Image URL', 'Actions'].map(h => (
+                        <th key={h} className="px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageItems.length > 0 ? pageItems.map(img => (
+                      <tr key={img.id} className="table-row-hover transition-colors group" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td className="px-4 py-3 font-mono text-xs font-bold text-slate-400">#{img.id}</td>
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-primary-600">#{img.packageId}</td>
+                        <td className="px-4 py-3 font-bold text-slate-800 text-sm max-w-[200px] truncate">{img.packageName || getPackageName(img.packageId)}</td>
+                        <td className="px-4 py-3">
+                          <img src={img.imageUrl} alt="preview" className="w-16 h-11 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer"
+                            onError={e => { e.target.src = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=200&q=60'; }} />
+                        </td>
+                        <td className="px-4 py-3 max-w-[250px] truncate font-mono text-xs text-slate-500">{img.imageUrl}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => openEdit(img)} className="p-1.5 rounded-lg text-primary-500 hover:bg-primary-50 transition-colors" title="Edit"><FiEdit2 className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => handleDelete(img.id)} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors" title="Delete"><FiTrash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={6} className="py-16 text-center">
+                          <FiImage className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                          <p className="text-slate-400 font-medium">No images found.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
-        </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-5 py-3.5 flex items-center justify-between flex-wrap gap-2"
+              style={{ borderTop: '1px solid #f1f5f9', background: '#fafafa' }}>
+              <span className="text-xs text-slate-400 font-medium">{(currentPage-1)*PER_PAGE+1}–{Math.min(currentPage*PER_PAGE,filtered.length)} of {filtered.length} images</span>
+              <div className="flex gap-1">
+                <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1} className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Prev</button>
+                {Array.from({length:totalPages},(_,i)=>(
+                  <button key={i} onClick={()=>setCurrentPage(i+1)} className={`w-7 h-7 text-xs font-bold rounded-lg border ${currentPage===i+1?'bg-indigo-500 border-indigo-500 text-white':'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{i+1}</button>
+                ))}
+                <button onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))} disabled={currentPage===totalPages} className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Next</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Add Modal */}
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add Package Image">
         <form onSubmit={handleAdd} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Package</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Select Package</label>
             <select value={addForm.packageId} onChange={e => setAddForm({ ...addForm, packageId: e.target.value })} required
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-primary-400 outline-none cursor-pointer">
+              className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
               <option value="">-- Select Package --</option>
               {packages.map(p => <option key={p.id} value={p.id}>#{p.id} – {p.title}</option>)}
             </select>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Image URL</label>
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:border-primary-400 transition-all">
-              <FiLink className="text-slate-400 w-4 h-4 flex-shrink-0" />
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Image URL</label>
+            <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <FiLink className="text-slate-450 w-4 h-4 flex-shrink-0" />
               <input type="url" value={addForm.imageUrl} onChange={e => setAddForm({ ...addForm, imageUrl: e.target.value })} placeholder="https://images.unsplash.com/..." required
-                className="bg-transparent outline-none text-sm w-full text-slate-800 placeholder-slate-400" />
+                className="bg-transparent outline-none text-sm w-full text-slate-800 placeholder-slate-450" />
             </div>
           </div>
           {addForm.imageUrl && (
@@ -228,8 +260,8 @@ const Images = () => {
               onError={e => e.target.style.display = 'none'} />
           )}
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-            <button type="button" onClick={() => setAddOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-            <button type="submit" disabled={uploading} className="flex items-center gap-2 px-5 py-2 text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 rounded-xl shadow-sm transition-colors disabled:opacity-60">
+            <button type="button" onClick={() => setAddOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+            <button type="submit" disabled={uploading} className="flex items-center gap-2 px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors disabled:opacity-60">
               {uploading && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               Save Image
             </button>
@@ -240,26 +272,26 @@ const Images = () => {
       {/* Edit Modal */}
       <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit Image Details">
         <form onSubmit={handleEdit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Package</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Package</label>
             <select value={editForm.packageId} onChange={e => setEditForm({ ...editForm, packageId: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-primary-400 outline-none cursor-pointer">
+              className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
               <option value="">-- Select Package --</option>
               {packages.map(p => <option key={p.id} value={p.id}>#{p.id} – {p.title}</option>)}
             </select>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Image URL</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Image URL</label>
             <input type="url" value={editForm.imageUrl} onChange={e => setEditForm({ ...editForm, imageUrl: e.target.value })} required
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-primary-400 outline-none font-mono text-xs" />
+              className="w-full text-sm px-3 py-2.5 rounded-xl outline-none font-mono text-xs" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }} />
           </div>
           {editForm.imageUrl && (
             <img src={editForm.imageUrl} alt="preview" className="w-full h-40 object-cover rounded-xl border border-slate-200"
               onError={e => e.target.style.display = 'none'} />
           )}
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-            <button type="button" onClick={() => setEditOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 rounded-xl shadow-sm transition-colors">Update Image</button>
+            <button type="button" onClick={() => setEditOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+            <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Update Image</button>
           </div>
         </form>
       </Modal>

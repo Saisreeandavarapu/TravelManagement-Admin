@@ -27,7 +27,8 @@ export const paymentApi = {
 
   // PUT /Payments/status/{id}
   updateStatus: async (id, status) => {
-    const response = await api.put(`/Payments/status/${id}`, { status }, {
+    // Send status as a query param only (e.g. PUT /Payments/status/5?status=CONFIRMED)
+    const response = await api.put(`/Payments/status/${id}`, null, {
       params: { status }
     });
     return response.data;

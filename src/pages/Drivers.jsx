@@ -5,30 +5,34 @@ import { userApi } from '../services/userApi';
 import Spinner from '../components/Spinner';
 import Modal from '../components/Modal';
 import {
-  FiSearch, FiEye, FiEdit2, FiTrash2,
-  FiToggleLeft, FiToggleRight, FiTruck, FiAward,
-  FiMail, FiPhone, FiHash, FiPlus
+  FiSearch, FiEye, FiEdit2, FiTrash2, FiTruck, FiPlus,
+  FiToggleLeft, FiToggleRight, FiAward, FiMail, FiPhone, FiMapPin
 } from 'react-icons/fi';
 
 const MOCK_DRIVERS = [
-  { id: 1, driverName: 'Alex Mercer', email: 'alex.mercer@travel.com', phoneNumber: '9876543210', licenseNumber: 'DL-AP-9876543', vehicleName: 'Toyota HiAce', vehicleNumber: 'AP-09-AB-1234', vehicleType: 'Van', experience: '8 Years', status: 'ACTIVE' },
-  { id: 2, driverName: 'Brian OConner', email: 'brian.oc@travel.com', phoneNumber: '9765432109', licenseNumber: 'DL-TS-1234567', vehicleName: 'Nissan NV350', vehicleNumber: 'TS-10-CD-5678', vehicleType: 'Mini Bus', experience: '5 Years', status: 'ACTIVE' },
-  { id: 3, driverName: 'Dominic Toretto', email: 'dom.t@travel.com', phoneNumber: '9654321098', licenseNumber: 'DL-KA-7654321', vehicleName: 'Ford Transit', vehicleNumber: 'KA-05-EF-9012', vehicleType: 'Bus', experience: '12 Years', status: 'ACTIVE' },
-  { id: 4, driverName: 'Leticia Ortiz', email: 'leticia.o@travel.com', phoneNumber: '9543210987', licenseNumber: 'DL-MH-2345678', vehicleName: 'Chevrolet Express', vehicleNumber: 'MH-12-GH-3456', vehicleType: 'Van', experience: '9 Years', status: 'INACTIVE' },
-  { id: 5, driverName: 'Roman Pearce', email: 'roman.p@travel.com', phoneNumber: '9432109876', licenseNumber: 'DL-GJ-8765432', vehicleName: 'Mercedes Sprinter', vehicleNumber: 'GJ-01-IJ-7890', vehicleType: 'Luxury Van', experience: '4 Years', status: 'ACTIVE' },
+  { id:1, driverName:'Alex Mercer',     email:'alex.mercer@travel.com',  phoneNumber:'9876543210', licenseNumber:'DL-AP-9876543', vehicleName:'Toyota HiAce',      vehicleNumber:'AP-09-AB-1234', vehicleType:'Van',       experience:'8 Years', status:'ACTIVE'   },
+  { id:2, driverName:'Brian OConner',   email:'brian.oc@travel.com',     phoneNumber:'9765432109', licenseNumber:'DL-TS-1234567', vehicleName:'Nissan NV350',       vehicleNumber:'TS-10-CD-5678', vehicleType:'Mini Bus',  experience:'5 Years', status:'ACTIVE'   },
+  { id:3, driverName:'Dominic Toretto', email:'dom.t@travel.com',        phoneNumber:'9654321098', licenseNumber:'DL-KA-7654321', vehicleName:'Ford Transit',       vehicleNumber:'KA-05-EF-9012', vehicleType:'Bus',       experience:'12 Years',status:'ACTIVE'   },
+  { id:4, driverName:'Leticia Ortiz',   email:'leticia.o@travel.com',    phoneNumber:'9543210987', licenseNumber:'DL-MH-2345678', vehicleName:'Chevrolet Express',  vehicleNumber:'MH-12-GH-3456', vehicleType:'Van',       experience:'9 Years', status:'INACTIVE' },
+  { id:5, driverName:'Roman Pearce',    email:'roman.p@travel.com',      phoneNumber:'9432109876', licenseNumber:'DL-GJ-8765432', vehicleName:'Mercedes Sprinter', vehicleNumber:'GJ-01-IJ-7890', vehicleType:'Luxury Van',experience:'4 Years', status:'ACTIVE'   },
 ];
+const VEHICLE_TYPES = ['Van','Mini Bus','Bus','Luxury Van','SUV','Sedan','Tempo Traveller'];
 
-const VEHICLE_TYPES = ['Van', 'Mini Bus', 'Bus', 'Luxury Van', 'SUV', 'Sedan', 'Tempo Traveller'];
-
-const StatusBadge = ({ status }) => {
-  const active = status?.toUpperCase() === 'ACTIVE';
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-      {status || 'ACTIVE'}
-    </span>
-  );
+const VEHICLE_COLORS = {
+  'Van':         '#6366f1', 'Mini Bus':    '#06b6d4', 'Bus':        '#10b981',
+  'Luxury Van':  '#f59e0b', 'SUV':         '#8b5cf6', 'Sedan':      '#f43f5e',
+  'Tempo Traveller': '#64748b',
 };
+
+const InputField = ({ label, ...props }) => (
+  <div className="space-y-1.5">
+    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</label>
+    <input className="w-full text-sm px-3 py-2.5 rounded-xl outline-none transition-all"
+      style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}
+      onFocus={e=>e.target.style.border='1px solid #6366f1'}
+      onBlur={e=>e.target.style.border='1px solid #e2e8f0'} {...props} />
+  </div>
+);
 
 const Drivers = () => {
   const { showToast } = useToast();
@@ -37,18 +41,18 @@ const Drivers = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const PER_PAGE = 6;
+  const PER_PAGE = 7;
 
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
+  const [addOpen,  setAddOpen]  = useState(false);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({});
 
   const [addForm, setAddForm] = useState({
-    firstName: '', lastName: '', email: '', password: '', phoneNumber: '',
-    licenseNumber: '', vehicleName: '', vehicleType: 'Van', experienceYears: '',
-    address: '', city: '', state: ''
+    firstName:'', lastName:'', email:'', password:'', phoneNumber:'',
+    licenseNumber:'', vehicleName:'', vehicleType:'Van', experienceYears:'',
+    address:'', city:'', state:''
   });
 
   useEffect(() => { load(); }, []);
@@ -66,219 +70,224 @@ const Drivers = () => {
         vehicleNumber: d.vehicleNumber || 'N/A'
       })) : MOCK_DRIVERS;
       setDrivers(list); setFiltered(list);
-    } catch {
-      setDrivers(MOCK_DRIVERS); setFiltered(MOCK_DRIVERS);
-    } finally { setLoading(false); }
+    } catch { setDrivers(MOCK_DRIVERS); setFiltered(MOCK_DRIVERS); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
     const q = search.toLowerCase();
     setFiltered(drivers.filter(d =>
-      !q ||
-      String(d.id).includes(q) ||
-      (d.driverName || d.name || '').toLowerCase().includes(q) ||
-      (d.email || '').toLowerCase().includes(q) ||
-      (d.phoneNumber || '').includes(q) ||
-      (d.licenseNumber || '').toLowerCase().includes(q) ||
-      (d.vehicleName || '').toLowerCase().includes(q) ||
-      (d.vehicleNumber || '').toLowerCase().includes(q) ||
-      (d.vehicleType || '').toLowerCase().includes(q)
+      !q || String(d.id).includes(q) ||
+      (d.driverName||'').toLowerCase().includes(q) ||
+      (d.email||'').toLowerCase().includes(q) ||
+      (d.licenseNumber||'').toLowerCase().includes(q) ||
+      (d.vehicleName||'').toLowerCase().includes(q) ||
+      (d.vehicleType||'').toLowerCase().includes(q)
     ));
     setCurrentPage(1);
   }, [search, drivers]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const pageItems = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
+  const pageItems = filtered.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
 
-  const handleToggle = async (driver) => {
+  const handleToggle = async driver => {
     const next = driver.status?.toUpperCase() === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    try { await driverApi.updateStatus(driver.id, next); load(); } catch {
-      setDrivers(p => p.map(d => d.id === driver.id ? { ...d, status: next } : d));
-    }
+    try { await driverApi.updateStatus(driver.id, next); load(); } catch { setDrivers(p=>p.map(d=>d.id===driver.id?{...d,status:next}:d)); }
     showToast(`Driver status → ${next}`, 'success');
   };
 
-  const openEdit = (d) => {
+  const openEdit = d => {
     setSelected(d);
-    setForm({ 
-      ...d, 
-      driverName: d.driverName || d.name || '',
-      experience: d.experience?.replace(' Years', '') || d.experienceYears || ''
-    });
+    setForm({ ...d, driverName: d.driverName||'', experience: d.experience?.replace(' Years','')||'' });
     setEditOpen(true);
   };
 
-  const handleEdit = async (e) => {
+  const handleEdit = async e => {
     e.preventDefault();
-    const payload = {
-      ...form,
-      experienceYears: parseInt(form.experience) || 0
-    };
-    try { 
-      await driverApi.updateDriver(form.id, payload); 
-      load(); 
-      showToast('Driver updated successfully', 'success');
-      setEditOpen(false);
-    } catch (err) {
-      showToast('Failed to update driver record', 'error');
-    }
+    const payload = { ...form, experienceYears: parseInt(form.experience)||0 };
+    try { await driverApi.updateDriver(form.id, payload); load(); showToast('Driver updated', 'success'); setEditOpen(false); }
+    catch (err) { showToast('Update failed', 'error'); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this driver record?')) return;
-    try { await driverApi.deleteDriver(id); load(); } catch {
-      setDrivers(p => p.filter(d => d.id !== id));
-    }
+  const handleDelete = async id => {
+    if (!window.confirm('Delete this driver?')) return;
+    try { await driverApi.deleteDriver(id); load(); } catch { setDrivers(p=>p.filter(d=>d.id!==id)); }
     showToast('Driver deleted', 'success');
   };
 
-  const handleAddSubmit = async (e) => {
+  const handleAddSubmit = async e => {
     e.preventDefault();
     try {
-      // Step 1: Register User account for Driver
       const userResult = await userApi.registerUser({
-        firstName: addForm.firstName,
-        lastName: addForm.lastName,
-        email: addForm.email,
-        password: addForm.password,
-        phoneNumber: addForm.phoneNumber,
-        role: 'DRIVER'
+        firstName:addForm.firstName, lastName:addForm.lastName, email:addForm.email,
+        password:addForm.password, phoneNumber:addForm.phoneNumber, role:'DRIVER'
       });
-
-      // Step 2: Create Driver profile linked to userResult
       await driverApi.addDriver({
-        registration: userResult,
-        licenseNumber: addForm.licenseNumber,
-        vehicleName: addForm.vehicleName,
-        vehicleType: addForm.vehicleType,
-        experienceYears: parseInt(addForm.experienceYears) || 0,
-        address: addForm.address,
-        city: addForm.city,
-        state: addForm.state,
-        status: 'ACTIVE'
+        registration:userResult, licenseNumber:addForm.licenseNumber, vehicleName:addForm.vehicleName,
+        vehicleType:addForm.vehicleType, experienceYears:parseInt(addForm.experienceYears)||0,
+        address:addForm.address, city:addForm.city, state:addForm.state, status:'ACTIVE'
       });
-
-      showToast('Driver added successfully', 'success');
-      setAddOpen(false);
-      setAddForm({
-        firstName: '', lastName: '', email: '', password: '', phoneNumber: '',
-        licenseNumber: '', vehicleName: '', vehicleType: 'Van', experienceYears: '',
-        address: '', city: '', state: ''
-      });
+      showToast('Driver added successfully', 'success'); setAddOpen(false);
+      setAddForm({ firstName:'', lastName:'', email:'', password:'', phoneNumber:'', licenseNumber:'', vehicleName:'', vehicleType:'Van', experienceYears:'', address:'', city:'', state:'' });
       load();
-    } catch (err) {
-      showToast(err.message || 'Failed to add driver profile.', 'error');
-    }
+    } catch (err) { showToast(err.message || 'Failed to add driver', 'error'); }
   };
 
-  const Field = ({ label, value }) => (
-    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
+  const activeDrivers   = drivers.filter(d => d.status?.toUpperCase() === 'ACTIVE').length;
+  const inactiveDrivers = drivers.filter(d => d.status?.toUpperCase() !== 'ACTIVE').length;
+
+  const InfoRow = ({ label, value }) => (
+    <div className="p-3 rounded-xl" style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }}>
+      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">{label}</p>
       <p className="text-sm font-semibold text-slate-800 break-all">{value || '—'}</p>
     </div>
   );
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Driver Management</h1>
+          <h1 className="font-display text-2xl font-black text-slate-800 tracking-tight">Driver Management</h1>
           <p className="text-sm text-slate-500 mt-0.5">Manage driver profiles, vehicles, licenses and status.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-xs font-semibold rounded-xl shadow-lg hover:bg-primary-600 transition-all active:scale-[0.98]">
+          <button onClick={()=>setAddOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-95"
+            style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow:'0 4px 14px rgba(99,102,241,0.4)' }}>
             <FiPlus className="w-4 h-4" /> Add Driver
           </button>
-          <div className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl px-4 py-2">
-            Total: <span className="text-primary-600 font-bold">{drivers.length}</span> Drivers
+          <div className="px-4 py-2.5 rounded-xl text-xs font-bold"
+            style={{ background:'#eef2ff', color:'#4f46e5', border:'1px solid #c7d2fe' }}>
+            {drivers.length} Drivers
           </div>
         </div>
       </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label:'Total',    value:drivers.length,  color:'#6366f1', bg:'#eef2ff', border:'#c7d2fe' },
+          { label:'Active',   value:activeDrivers,   color:'#10b981', bg:'#d1fae5', border:'#6ee7b7' },
+          { label:'Inactive', value:inactiveDrivers, color:'#f43f5e', bg:'#fee2e2', border:'#fca5a5' },
+        ].map(s => (
+          <div key={s.label} className="card p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-base"
+              style={{ background:s.bg, color:s.color, border:`1px solid ${s.border}` }}>
+              {s.value}
+            </div>
+            <p className="text-xs font-bold text-slate-500">{s.label} Drivers</p>
+          </div>
+        ))}
+      </div>
+
       {/* Search */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:border-primary-400 focus-within:ring-1 focus-within:ring-primary-400 transition-all">
-          <FiSearch className="text-slate-400 w-4 h-4 flex-shrink-0" />
-          <input
-            className="bg-transparent outline-none text-sm w-full placeholder-slate-400 text-slate-700"
-            placeholder="Search by name, email, license, vehicle, phone..."
-            value={search} onChange={e => setSearch(e.target.value)}
-          />
+      <div className="card p-4">
+        <div className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
+          style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }}>
+          <FiSearch className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <input className="bg-transparent outline-none text-sm w-full text-slate-700 placeholder-slate-400"
+            placeholder="Search by name, email, license, vehicle…"
+            value={search} onChange={e=>setSearch(e.target.value)} />
         </div>
       </div>
 
-      {/* Table Card */}
+      {/* Table */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm h-64 flex items-center justify-center"><Spinner /></div>
+        <div className="card h-64 flex items-center justify-center"><Spinner /></div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[900px]">
+            <table className="w-full text-left min-w-[1050px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  {['ID','Driver Name','Email','Phone Number','License No.','Vehicle Name','Vehicle No.','Vehicle Type','Experience','Status','Actions'].map(h => (
-                    <th key={h} className="px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">{h}</th>
+                <tr style={{ background:'#f8fafc', borderBottom:'2px solid #e2e8f0' }}>
+                  {['ID','Driver','Email','Phone','License','Vehicle','Vehicle No.','Type','Experience','Status','Actions'].map(h=>(
+                    <th key={h} className="px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
-                {pageItems.length > 0 ? pageItems.map(driver => (
-                  <tr key={driver.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="px-4 py-3.5 font-mono text-xs font-bold text-slate-400">#{driver.id}</td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-600 font-bold text-sm flex items-center justify-center flex-shrink-0 border border-violet-200">
-                          {(driver.driverName || 'D')[0].toUpperCase()}
+              <tbody>
+                {pageItems.length > 0 ? pageItems.map(driver => {
+                  const isActive = driver.status?.toUpperCase() === 'ACTIVE';
+                  const vColor = VEHICLE_COLORS[driver.vehicleType] || '#64748b';
+                  return (
+                    <tr key={driver.id} className="table-row-hover transition-all group" style={{ borderBottom:'1px solid #f1f5f9' }}>
+                      <td className="px-4 py-3.5 font-mono text-xs font-bold text-slate-400">#{driver.id}</td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
+                            style={{ background:'linear-gradient(135deg,#8b5cf6,#a78bfa)' }}>
+                            {(driver.driverName||'D')[0].toUpperCase()}
+                          </div>
+                          <span className="text-sm font-bold text-slate-800 whitespace-nowrap">{driver.driverName}</span>
                         </div>
-                        <span className="font-semibold text-slate-800 text-sm whitespace-nowrap">{driver.driverName}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-xs text-slate-600 font-medium">{driver.email}</td>
-                    <td className="px-4 py-3.5 font-mono text-xs text-slate-600">{driver.phoneNumber}</td>
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold text-slate-700">{driver.licenseNumber}</td>
-                    <td className="px-4 py-3.5 text-sm font-medium text-slate-700">{driver.vehicleName}</td>
-                    <td className="px-4 py-3.5 font-mono text-xs text-slate-600">{driver.vehicleNumber}</td>
-                    <td className="px-4 py-3.5">
-                      <span className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-lg border border-indigo-100">{driver.vehicleType}</span>
-                    </td>
-                    <td className="px-4 py-3.5 text-xs font-semibold text-slate-600">{driver.experience}</td>
-                    <td className="px-4 py-3.5">
-                      <button onClick={() => handleToggle(driver)} className="flex items-center gap-1.5 group/toggle">
-                        {driver.status?.toUpperCase() === 'ACTIVE'
-                          ? <FiToggleRight className="w-6 h-6 text-emerald-500" />
-                          : <FiToggleLeft className="w-6 h-6 text-slate-300" />}
-                        <StatusBadge status={driver.status} />
-                      </button>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setSelected(driver); setViewOpen(true); }} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors" title="View"><FiEye className="w-4 h-4" /></button>
-                        <button onClick={() => openEdit(driver)} className="p-1.5 rounded-lg text-primary-500 hover:bg-primary-50 transition-colors" title="Edit"><FiEdit2 className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete(driver.id)} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors" title="Delete"><FiTrash2 className="w-4 h-4" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                )) : (
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-slate-600">{driver.email}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs text-slate-600">{driver.phoneNumber}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold text-slate-700">{driver.licenseNumber}</td>
+                      <td className="px-4 py-3.5 text-sm font-medium text-slate-700">{driver.vehicleName}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs text-slate-600">{driver.vehicleNumber}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold"
+                          style={{ background:`${vColor}18`, color:vColor, border:`1px solid ${vColor}30` }}>
+                          {driver.vehicleType}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-xs font-semibold text-slate-600">{driver.experience}</td>
+                      <td className="px-4 py-3.5">
+                        <button onClick={()=>handleToggle(driver)}
+                          className="flex items-center gap-1.5 transition-all hover:opacity-80">
+                          {isActive
+                            ? <FiToggleRight className="w-6 h-6" style={{ color:'#10b981' }} />
+                            : <FiToggleLeft  className="w-6 h-6 text-slate-300" />}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-slate-500 bg-slate-100 border border-slate-200'}`}>
+                            {driver.status}
+                          </span>
+                        </button>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1">
+                          {[
+                            { icon:FiEye,    title:'View',  fn:()=>{setSelected(driver);setViewOpen(true);}, color:'#64748b', hbg:'#f1f5f9' },
+                            { icon:FiEdit2,  title:'Edit',  fn:()=>openEdit(driver),                         color:'#6366f1', hbg:'#eef2ff' },
+                            { icon:FiTrash2, title:'Delete',fn:()=>handleDelete(driver.id),                  color:'#f43f5e', hbg:'#fff1f2' },
+                          ].map(({icon:Icon,title,fn,color,hbg})=>(
+                            <button key={title} onClick={fn} title={title}
+                              className="p-1.5 rounded-lg transition-all opacity-50 group-hover:opacity-100"
+                              style={{ color }}
+                              onMouseEnter={e=>e.currentTarget.style.background=hbg}
+                              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                              <Icon className="w-3.5 h-3.5"/>
+                            </button>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }) : (
                   <tr><td colSpan={11} className="py-16 text-center text-slate-400 font-medium">No drivers found.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
-              <span className="text-xs text-slate-500 font-medium">
-                {(currentPage-1)*PER_PAGE+1}–{Math.min(currentPage*PER_PAGE, filtered.length)} of {filtered.length}
-              </span>
+            <div className="px-5 py-3.5 flex items-center justify-between flex-wrap gap-2"
+              style={{ borderTop:'1px solid #f1f5f9', background:'#fafafa' }}>
+              <span className="text-xs text-slate-400 font-medium">{(currentPage-1)*PER_PAGE+1}–{Math.min(currentPage*PER_PAGE,filtered.length)} of {filtered.length}</span>
               <div className="flex gap-1">
-                <button onClick={() => setCurrentPage(p => Math.max(1,p-1))} disabled={currentPage===1} className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Prev</button>
+                <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg border disabled:opacity-40"
+                  style={{ borderColor:'#e2e8f0', color:'#64748b' }}>Prev</button>
                 {Array.from({length:totalPages},(_,i)=>(
-                  <button key={i} onClick={()=>setCurrentPage(i+1)} className={`w-7 h-7 text-xs font-bold rounded-lg border transition-colors ${currentPage===i+1?'bg-primary-500 border-primary-500 text-white':'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{i+1}</button>
+                  <button key={i} onClick={()=>setCurrentPage(i+1)}
+                    className="w-7 h-7 text-xs font-bold rounded-lg border transition-all"
+                    style={currentPage===i+1?{background:'#6366f1',borderColor:'#6366f1',color:'#fff'}:{background:'#fff',borderColor:'#e2e8f0',color:'#64748b'}}>
+                    {i+1}
+                  </button>
                 ))}
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages,p+1))} disabled={currentPage===totalPages} className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Next</button>
+                <button onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))} disabled={currentPage===totalPages}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg border disabled:opacity-40"
+                  style={{ borderColor:'#e2e8f0', color:'#64748b' }}>Next</button>
               </div>
             </div>
           )}
@@ -286,165 +295,116 @@ const Drivers = () => {
       )}
 
       {/* View Modal */}
-      <Modal isOpen={viewOpen} onClose={() => setViewOpen(false)} title="Driver Profile Details" size="lg">
+      <Modal isOpen={viewOpen} onClose={()=>setViewOpen(false)} title="Driver Profile" size="lg">
         {selected && (
           <div className="space-y-4">
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl">
-              <div className="w-16 h-16 rounded-2xl bg-violet-200 text-violet-700 font-bold text-2xl flex items-center justify-center border-2 border-violet-300">
+            <div className="flex items-center gap-4 p-4 rounded-2xl"
+              style={{ background:'linear-gradient(135deg,#ede9fe,#ddd6fe)', border:'1px solid #c4b5fd' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black text-white"
+                style={{ background:'linear-gradient(135deg,#8b5cf6,#6366f1)' }}>
                 {(selected.driverName||'D')[0].toUpperCase()}
               </div>
               <div>
-                <h4 className="text-lg font-bold text-slate-800">{selected.driverName}</h4>
-                <p className="text-xs text-slate-500 mt-0.5">Driver ID: #{selected.id}</p>
-                <div className="mt-1.5"><StatusBadge status={selected.status} /></div>
+                <h4 className="text-lg font-black text-slate-800">{selected.driverName}</h4>
+                <p className="text-xs text-slate-500">Driver ID: #{selected.id}</p>
+                <span className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-[10px] font-bold ${selected.status?.toUpperCase()==='ACTIVE'?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-600'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${selected.status?.toUpperCase()==='ACTIVE'?'bg-emerald-500':'bg-slate-400'}`}/>
+                  {selected.status}
+                </span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Email Address" value={selected.email} />
-              <Field label="Phone Number" value={selected.phoneNumber} />
-              <Field label="License Number" value={selected.licenseNumber} />
-              <Field label="Experience" value={selected.experience} />
-              <Field label="Vehicle Name" value={selected.vehicleName} />
-              <Field label="Vehicle Number" value={selected.vehicleNumber} />
-              <Field label="Vehicle Type" value={selected.vehicleType} />
-              {selected.address && <Field label="Address" value={selected.address} />}
-              {selected.city && <Field label="City" value={selected.city} />}
-              {selected.state && <Field label="State" value={selected.state} />}
+              <InfoRow label="Email"        value={selected.email} />
+              <InfoRow label="Phone"        value={selected.phoneNumber} />
+              <InfoRow label="License No."  value={selected.licenseNumber} />
+              <InfoRow label="Experience"   value={selected.experience} />
+              <InfoRow label="Vehicle"      value={selected.vehicleName} />
+              <InfoRow label="Vehicle No."  value={selected.vehicleNumber} />
+              <InfoRow label="Vehicle Type" value={selected.vehicleType} />
+              {selected.address && <InfoRow label="Address" value={selected.address} />}
+              {selected.city    && <InfoRow label="City"    value={selected.city} />}
+              {selected.state   && <InfoRow label="State"   value={selected.state} />}
             </div>
           </div>
         )}
       </Modal>
 
       {/* Add Modal */}
-      <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add New Driver Profile" size="xl">
-        <form onSubmit={handleAddSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            {/* Account fields */}
+      <Modal isOpen={addOpen} onClose={()=>setAddOpen(false)} title="Add New Driver" size="2xl">
+        <form onSubmit={handleAddSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-primary-600 border-b border-slate-100 pb-1">1. User Account Details</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest pb-2 border-b" style={{ color:'#6366f1', borderColor:'#e0e7ff' }}>1. Account Details</p>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">First Name</label>
-                  <input type="text" value={addForm.firstName} onChange={e=>setAddForm({...addForm,firstName:e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Last Name</label>
-                  <input type="text" value={addForm.lastName} onChange={e=>setAddForm({...addForm,lastName:e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-                </div>
+                <InputField label="First Name" type="text" value={addForm.firstName} onChange={e=>setAddForm({...addForm,firstName:e.target.value})} required />
+                <InputField label="Last Name"  type="text" value={addForm.lastName}  onChange={e=>setAddForm({...addForm,lastName:e.target.value})}  required />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Email Address</label>
-                <input type="email" value={addForm.email} onChange={e=>setAddForm({...addForm,email:e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Password</label>
-                <input type="password" value={addForm.password} onChange={e=>setAddForm({...addForm,password:e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Phone Number</label>
-                <input type="text" value={addForm.phoneNumber} onChange={e=>setAddForm({...addForm,phoneNumber:e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-              </div>
+              <InputField label="Email"    type="email"    value={addForm.email}       onChange={e=>setAddForm({...addForm,email:e.target.value})}       required />
+              <InputField label="Password" type="password" value={addForm.password}    onChange={e=>setAddForm({...addForm,password:e.target.value})}    required />
+              <InputField label="Phone"    type="tel"      value={addForm.phoneNumber} onChange={e=>setAddForm({...addForm,phoneNumber:e.target.value})} required />
             </div>
-
-            {/* Professional fields */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-primary-600 border-b border-slate-100 pb-1">2. Vehicle & Driving Details</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest pb-2 border-b" style={{ color:'#06b6d4', borderColor:'#cffafe' }}>2. Vehicle & Driving</p>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">License Number</label>
-                  <input type="text" value={addForm.licenseNumber} onChange={e=>setAddForm({...addForm,licenseNumber:e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Experience (Years)</label>
-                  <input type="number" value={addForm.experienceYears} onChange={e=>setAddForm({...addForm,experienceYears:e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-                </div>
+                <InputField label="License No."      type="text"   value={addForm.licenseNumber}  onChange={e=>setAddForm({...addForm,licenseNumber:e.target.value})}  required />
+                <InputField label="Experience (yrs)" type="number" value={addForm.experienceYears} onChange={e=>setAddForm({...addForm,experienceYears:e.target.value})} required min="0" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Vehicle Name</label>
-                  <input type="text" value={addForm.vehicleName} onChange={e=>setAddForm({...addForm,vehicleName:e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Vehicle Type</label>
+                <InputField label="Vehicle Name" type="text" value={addForm.vehicleName} onChange={e=>setAddForm({...addForm,vehicleName:e.target.value})} required />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vehicle Type</label>
                   <select value={addForm.vehicleType} onChange={e=>setAddForm({...addForm,vehicleType:e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none cursor-pointer focus:border-primary-400">
+                    className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
+                    style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}>
                     {VEHICLE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Street Address</label>
-                <input type="text" value={addForm.address} onChange={e=>setAddForm({...addForm,address:e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-              </div>
+              <InputField label="Address" type="text" value={addForm.address} onChange={e=>setAddForm({...addForm,address:e.target.value})} required />
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">City</label>
-                  <input type="text" value={addForm.city} onChange={e=>setAddForm({...addForm,city:e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">State</label>
-                  <input type="text" value={addForm.state} onChange={e=>setAddForm({...addForm,state:e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-primary-400" required />
-                </div>
+                <InputField label="City"  type="text" value={addForm.city}  onChange={e=>setAddForm({...addForm,city:e.target.value})}  required />
+                <InputField label="State" type="text" value={addForm.state} onChange={e=>setAddForm({...addForm,state:e.target.value})} required />
               </div>
             </div>
           </div>
-
-          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-            <button type="button" onClick={()=>setAddOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 rounded-xl shadow-sm transition-colors">Add Driver</button>
+          <div className="flex justify-end gap-3 pt-3" style={{ borderTop:'1px solid #f1f5f9' }}>
+            <button type="button" onClick={()=>setAddOpen(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-100">Cancel</button>
+            <button type="submit"
+              className="px-5 py-2 text-xs font-bold text-white rounded-xl"
+              style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}>Add Driver</button>
           </div>
         </form>
       </Modal>
 
       {/* Edit Modal */}
-      <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit Driver Details" size="lg">
+      <Modal isOpen={editOpen} onClose={()=>setEditOpen(false)} title="Edit Driver" size="lg">
         <form onSubmit={handleEdit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              ['Driver Name','driverName','text'],
-              ['Email','email','email'],
-              ['Phone Number','phoneNumber','text'],
-              ['License Number','licenseNumber','text'],
-              ['Vehicle Name','vehicleName','text'],
-              ['Vehicle Number','vehicleNumber','text'],
-              ['Experience','experience','text'],
-            ].map(([label, key, type]) => (
-              <div key={key} className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
-                <input type={type} value={form[key]||''} onChange={e=>setForm({...form,[key]:e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:border-primary-400 outline-none transition-colors" required />
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            {[['Driver Name','driverName'],['Email','email'],['Phone','phoneNumber'],['License No.','licenseNumber'],['Vehicle Name','vehicleName'],['Vehicle No.','vehicleNumber'],['Experience','experience']].map(([label,key])=>(
+              <InputField key={key} label={label} type="text" value={form[key]||''} onChange={e=>setForm({...form,[key]:e.target.value})} required />
             ))}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vehicle Type</label>
-              <select value={form.vehicleType||''} onChange={e=>setForm({...form,vehicleType:e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:border-primary-400 outline-none transition-colors cursor-pointer">
-                {VEHICLE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vehicle Type</label>
+              <select value={form.vehicleType||'Van'} onChange={e=>setForm({...form,vehicleType:e.target.value})}
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}>
+                {VEHICLE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</label>
               <select value={form.status||'ACTIVE'} onChange={e=>setForm({...form,status:e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:border-primary-400 outline-none transition-colors cursor-pointer">
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}>
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="INACTIVE">INACTIVE</option>
               </select>
             </div>
           </div>
-          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-            <button type="button" onClick={()=>setEditOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 rounded-xl shadow-sm transition-colors">Save Changes</button>
+          <div className="flex justify-end gap-3 pt-3" style={{ borderTop:'1px solid #f1f5f9' }}>
+            <button type="button" onClick={()=>setEditOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-100">Cancel</button>
+            <button type="submit" className="px-5 py-2 text-xs font-bold text-white rounded-xl" style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}>Save Changes</button>
           </div>
         </form>
       </Modal>

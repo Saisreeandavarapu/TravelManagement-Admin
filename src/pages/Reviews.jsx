@@ -16,7 +16,7 @@ const StarRating = ({ rating, size = 'sm' }) => {
       {[1, 2, 3, 4, 5].map((star) => (
         <FiStar
           key={star}
-          className={`${iconSize} ${star <= rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}`}
+          className={`${iconSize} ${star <= rating ? 'text-amber-500 fill-amber-400' : 'text-slate-200 fill-slate-200'}`}
         />
       ))}
     </div>
@@ -24,7 +24,7 @@ const StarRating = ({ rating, size = 'sm' }) => {
 };
 
 const InteractiveStars = ({ rating, onRate }) => (
-  <div className="flex items-center gap-1">
+  <div className="flex items-center gap-1.5">
     {[1, 2, 3, 4, 5].map((star) => (
       <button
         key={star}
@@ -32,7 +32,7 @@ const InteractiveStars = ({ rating, onRate }) => (
         onClick={() => onRate(star)}
         className="focus:outline-none transition-transform hover:scale-110"
       >
-        <FiStar className={`w-6 h-6 ${star <= rating ? 'text-amber-400 fill-amber-400' : 'text-slate-300 fill-slate-300'}`} />
+        <FiStar className={`w-6 h-6 ${star <= rating ? 'text-amber-500 fill-amber-400' : 'text-slate-350 fill-slate-350'}`} />
       </button>
     ))}
   </div>
@@ -51,7 +51,6 @@ const Reviews = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Add review modal
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({
     packageId: '',
@@ -62,14 +61,12 @@ const Reviews = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // Load packages and reviews on mount
   useEffect(() => {
     loadInitialData();
   }, []);
 
   const loadInitialData = async () => {
     setLoading(true);
-    // 1. Fetch Packages first
     try {
       const data = await packageApi.allPackages();
       setPackages(Array.isArray(data) ? data : []);
@@ -83,7 +80,6 @@ const Reviews = () => {
       ]);
     }
 
-    // 2. Fetch Reviews
     try {
       const reviewData = await reviewApi.allReviews();
       const list = Array.isArray(reviewData) ? reviewData : [];
@@ -91,15 +87,12 @@ const Reviews = () => {
       setFilteredReviews(list);
     } catch (err) {
       console.error(err);
-      showToast('Could not load reviews; displaying default reviews.', 'warning');
       const mockReviews = [
         { id: 'REV-101', packageId: '1', customerName: 'Aarav Mehta', rating: 5, comment: 'Absolutely breathtaking! The Goa beaches were beautiful and the resort was incredibly luxury.', reviewDate: '2026-06-15' },
         { id: 'REV-102', packageId: '2', customerName: 'Ananya Iyer', rating: 4, comment: 'The backwaters of Kerala were serene. Highly recommend the houseboat experience.', reviewDate: '2026-06-14' },
         { id: 'REV-103', packageId: '3', customerName: 'Rohan Malhotra', rating: 5, comment: 'Incredible trekking in the Himalayas. The guides were professional and safety was top-notch.', reviewDate: '2026-06-16' },
         { id: 'REV-104', packageId: '1', customerName: 'Sneha Patel', rating: 3, comment: 'Goa tour was nice, but the transport vehicle was a bit delayed on day two.', reviewDate: '2026-06-12' },
         { id: 'REV-105', packageId: '4', customerName: 'Kabir Singh', rating: 5, comment: 'Stunning palaces in Jaipur! Rajasthan culture was represented beautifully. Loved it!', reviewDate: '2026-06-11' },
-        { id: 'REV-106', packageId: '5', customerName: 'Priya Nair', rating: 5, comment: 'The Maldives trip was pure bliss. Crystal clear water and outstanding hospitality.', reviewDate: '2026-06-17' },
-        { id: 'REV-107', packageId: '2', customerName: 'Vikram Rao', rating: 4, comment: 'Loved Kerala. The food was extremely spicy but absolutely delicious.', reviewDate: '2026-06-13' }
       ];
       setReviews(mockReviews);
       setFilteredReviews(mockReviews);
@@ -108,14 +101,12 @@ const Reviews = () => {
     }
   };
 
-  // Helper to map packageName
   const getPackageName = (review) => {
     if (review.packageName) return review.packageName;
     const pkg = packages.find(p => String(p.id) === String(review.packageId));
     return pkg ? (pkg.title || pkg.packageName) : `Package #${review.packageId}`;
   };
 
-  // Search & Filter Effect
   useEffect(() => {
     let result = reviews;
 
@@ -173,7 +164,6 @@ const Reviews = () => {
       });
       loadInitialData();
     } catch {
-      // Local fallback
       const newReview = {
         id: `REV-${Date.now().toString().slice(-4)}`,
         ...addForm,
@@ -194,7 +184,6 @@ const Reviews = () => {
     }
   };
 
-  // Pagination
   const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -209,72 +198,57 @@ const Reviews = () => {
     : 0.0;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight font-sans">Customer Reviews</h1>
-          <p className="text-xs sm:text-sm text-slate-450 mt-0.5">
-            Manage reviews submitted by travelers, check overall ratings, and delete reviews.
-          </p>
+          <h1 className="font-display text-2xl font-black text-slate-800 tracking-tight">Customer Reviews</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Manage reviews submitted by travelers, check overall ratings, and delete reviews.</p>
         </div>
         <button
           onClick={() => setIsAddOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-primary-500/15 hover:bg-primary-600 transition-all active:scale-[0.98]"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}
         >
-          <FiPlus className="w-4 h-4" />
-          Add Review
+          <FiPlus className="w-4 h-4" /> Add Review
         </button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
-            <FiStar className="w-5 h-5 text-amber-500 fill-amber-400" />
+        {[
+          { label: 'Avg. Rating', value: `${avgRating} / 5`, icon: FiStar, color: '#f59e0b', bg: '#fffbeb' },
+          { label: 'Total Reviews', value: reviews.length, icon: FiMessageSquare, color: '#6366f1', bg: '#eef2ff' },
+          { label: 'Reviewed Packages', value: new Set(reviews.map((r) => r.packageId)).size, icon: FiPackage, color: '#10b981', bg: '#d1fae5' },
+        ].map(s => (
+          <div key={s.label} className="card p-5 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-base"
+              style={{ background: s.bg, color: s.color }}>
+              <s.icon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</p>
+              <p className="text-xl font-display font-black text-slate-805 mt-1">{s.value}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg. Rating</p>
-            <h3 className="text-2xl font-extrabold text-slate-800">
-              {avgRating}<span className="text-sm font-semibold text-slate-400"> / 5</span>
-            </h3>
-          </div>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center">
-            <FiMessageSquare className="w-5 h-5 text-sky-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Reviews</p>
-            <h3 className="text-2xl font-extrabold text-slate-800">{reviews.length}</h3>
-          </div>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-            <FiPackage className="w-5 h-5 text-emerald-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Reviewed Packages</p>
-            <h3 className="text-2xl font-extrabold text-slate-800">
-              {new Set(reviews.map((r) => r.packageId)).size}
-            </h3>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Universal Search & Filter */}
-      <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <div className="flex-1 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 transition-all">
-          <FiSearch className="text-slate-400 w-4.5 h-4.5 flex-shrink-0" />
+      {/* Search & Filter */}
+      <div className="card p-4 flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
+          style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <FiSearch className="text-slate-450 w-4 h-4 flex-shrink-0" />
           <input
             type="text"
-            placeholder="Search by ID, Customer Name, Package Name, or Comment..."
+            placeholder="Search by customer, package, comments..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent border-none outline-none text-sm w-full text-slate-700 placeholder-slate-400"
+            className="bg-transparent border-none outline-none text-sm w-full text-slate-700 placeholder-slate-405"
           />
         </div>
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+        <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5"
+          style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
           <FiFilter className="text-slate-400 w-4 h-4" />
           <select
             value={ratingFilter}
@@ -291,114 +265,89 @@ const Reviews = () => {
         </div>
       </div>
 
-      {/* Table Section */}
+      {/* Review Card Grid Layout */}
       {loading ? (
-        <div className="h-60 flex items-center justify-center bg-white border border-slate-100 rounded-2xl shadow-sm">
-          <Spinner />
-        </div>
+        <div className="card h-64 flex items-center justify-center"><Spinner /></div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[950px]">
-              <thead>
-                <tr className="bg-slate-55 border-b border-slate-100 text-slate-450 text-xs uppercase tracking-wider font-bold">
-                  <th className="px-6 py-4">Review ID</th>
-                  <th className="px-6 py-4">Customer Name</th>
-                  <th className="px-6 py-4">Package Name</th>
-                  <th className="px-6 py-4">Rating</th>
-                  <th className="px-6 py-4">Comment</th>
-                  <th className="px-6 py-4">Review Date</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
-                {currentItems.length > 0 ? (
-                  currentItems.map((review) => (
-                    <tr key={review.id} className="hover:bg-slate-50/40 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-primary-600">{review.id}</td>
-                      <td className="px-6 py-4 font-bold text-slate-800">{review.customerName || 'N/A'}</td>
-                      <td className="px-6 py-4 font-semibold text-slate-650 max-w-xs truncate">
-                        <span className="flex items-center gap-1.5">
-                          <FiPackage className="text-slate-400 w-3.5 h-3.5 flex-shrink-0" />
-                          {getPackageName(review)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-0.5">
-                          <StarRating rating={Number(review.rating || 5)} />
-                          <span className="text-[10px] font-bold text-amber-500">{review.rating}/5</span>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {currentItems.length > 0 ? (
+              currentItems.map((review) => (
+                <div key={review.id} className="card p-5 flex flex-col justify-between hover:shadow-lg transition-all relative">
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white"
+                          style={{ background: 'linear-gradient(135deg,#f59e0b,#fbbf24)' }}>
+                          {(review.customerName || 'U')[0].toUpperCase()}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 max-w-sm">
-                        <p className="text-slate-600 text-xs leading-relaxed line-clamp-2" title={review.comment}>
-                          {review.comment || 'No comment provided.'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 font-semibold text-xs whitespace-nowrap">
-                        <span className="flex items-center gap-1.5">
-                          <FiCalendar className="text-slate-400 w-3.5 h-3.5" />
-                          {review.reviewDate || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleDelete(review.id)}
-                          className="p-2 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                          title="Delete Review"
-                        >
-                          <FiTrash2 className="w-4.5 h-4.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-slate-400 font-medium">
-                      No review records found matching your filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-800 leading-tight">{review.customerName}</h4>
+                          <span className="text-[10px] text-slate-450 font-mono">#{review.id}</span>
+                        </div>
+                      </div>
+                      <StarRating rating={Number(review.rating || 5)} />
+                    </div>
+
+                    <p className="text-slate-600 text-xs leading-relaxed mb-4 italic">
+                      "{review.comment || 'No comment provided.'}"
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <FiPackage className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-semibold text-slate-500 truncate max-w-[160px]">{getPackageName(review)}</span>
+                    </span>
+                    <span className="flex items-center gap-1 font-mono">
+                      <FiCalendar className="w-3.5 h-3.5 text-slate-400" />
+                      {review.reviewDate || 'N/A'}
+                    </span>
+                  </div>
+
+                  {/* Absolute delete button */}
+                  <button
+                    onClick={() => handleDelete(review.id)}
+                    className="absolute top-4 right-4 p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 absolute-delete-btn"
+                    title="Delete Review"
+                    style={{ position: 'absolute', top: '12px', right: '12px' }}
+                  >
+                    <FiTrash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-16 text-center text-slate-400 font-medium">No reviews found.</div>
+            )}
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <span className="text-xs text-slate-450 font-bold">
-                Showing {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredReviews.length)} of {filteredReviews.length} reviews
-              </span>
-              <div className="flex items-center gap-1">
-                <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  Prev
-                </button>
+            <div className="px-5 py-3.5 flex items-center justify-between flex-wrap gap-2"
+              style={{ borderTop: '1px solid #f1f5f9', background: '#fafafa' }}>
+              <span className="text-xs text-slate-400 font-medium">Showing {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredReviews.length)} of {filteredReviews.length} reviews</span>
+              <div className="flex gap-1">
+                <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Prev</button>
                 {Array.from({ length: totalPages }, (_, i) => (
-                  <button key={i + 1} onClick={() => handlePageChange(i + 1)}
-                    className={`w-7 h-7 text-xs font-semibold rounded-lg border transition-colors ${currentPage === i + 1 ? 'bg-primary-500 border-primary-500 text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                    {i + 1}
-                  </button>
+                  <button key={i + 1} onClick={() => handlePageChange(i + 1)} className={`w-7 h-7 text-xs font-bold rounded-lg border ${currentPage === i + 1 ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{i + 1}</button>
                 ))}
-                <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  Next
-                </button>
+                <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50">Next</button>
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Add Review Modal */}
-      <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Submit New Customer Review">
+      <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Submit Customer Review">
         <form onSubmit={handleAddSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Package</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Select Package</label>
               <select
                 value={addForm.packageId}
                 onChange={(e) => setAddForm({ ...addForm, packageId: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:border-primary-500 outline-none transition-colors cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none cursor-pointer"
                 required
               >
                 <option value="">-- Select Package --</option>
@@ -409,14 +358,14 @@ const Reviews = () => {
                 ))}
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Customer Name</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Customer Name</label>
               <input
                 type="text"
                 placeholder="e.g. John Doe"
                 value={addForm.customerName}
                 onChange={(e) => setAddForm({ ...addForm, customerName: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:border-primary-500 outline-none transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none"
                 required
               />
             </div>
@@ -424,32 +373,32 @@ const Reviews = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Star Rating</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Star Rating</label>
               <div className="flex items-center gap-3">
                 <InteractiveStars rating={addForm.rating} onRate={(r) => setAddForm({ ...addForm, rating: r })} />
-                <span className="text-sm font-bold text-amber-500">{addForm.rating} / 5 Stars</span>
+                <span className="text-xs font-bold text-amber-500">{addForm.rating} / 5 Stars</span>
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Review Date</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Review Date</label>
               <input
                 type="date"
                 value={addForm.reviewDate}
                 onChange={(e) => setAddForm({ ...addForm, reviewDate: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:border-primary-500 outline-none transition-colors cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none cursor-pointer"
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Review Comment</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Review Comment</label>
             <textarea
               placeholder="Describe the traveler experience in detail..."
               value={addForm.comment}
               onChange={(e) => setAddForm({ ...addForm, comment: e.target.value })}
               rows={4}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-500 outline-none transition-colors resize-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none resize-none"
               required
             />
           </div>
@@ -458,14 +407,14 @@ const Reviews = () => {
             <button
               type="button"
               onClick={() => setIsAddOpen(false)}
-              className="px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+              className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 rounded-xl shadow-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-750 rounded-xl shadow-lg transition-colors disabled:opacity-50"
             >
               {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               Submit Review
