@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../context/ToastContext';
 import { packageApi } from '../services/packageApi';
 import { imageApi } from '../services/imageApi';
+import { driverApi } from '../services/driverApi';
 import Spinner from '../components/Spinner';
 import Modal from '../components/Modal';
 import {
@@ -37,7 +38,8 @@ const MOCK_IMAGES_FLAT = [
 const EMPTY_FORM = {
   packageImage: '', title: '', destination: '', packageType: 'Beach',
   originalPrice: '', discount: '0', offerPrice: '', duration: '',
-  availableSeats: '', bookedSeats: '0', rating: '4.5', status: 'ACTIVE',
+  availableSeats: '', bookedSeats: '0', rating: '4.5', status: 'PENDING',
+  description: '', driverId: '', durationDays: '', maxPeople: ''
 };
 
 const StarRating = ({ rating }) => (
@@ -205,6 +207,7 @@ const Packages = () => {
   const [viewMode, setViewMode]   = useState('grid');
   const PER_PAGE = 6;
 
+  const [drivers, setDrivers] = useState([]);
   const [addOpen, setAddOpen]   = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -235,11 +238,15 @@ const Packages = () => {
     offerPrice:     pkg.offerPrice || pkg.offer_price ||
                     Math.round((pkg.originalPrice || 0) * (1 - (pkg.discountPercentage || 0) / 100)) || 0,
     duration:       pkg.duration || (pkg.durationDays ? `${pkg.durationDays} Day${pkg.durationDays !== 1 ? 's' : ''}` : 'N/A'),
+    durationDays:   pkg.durationDays || (pkg.duration ? parseInt(pkg.duration) || '' : ''),
     availableSeats: pkg.availableSeats || pkg.maxPeople || pkg.seats || 0,
+    maxPeople:      pkg.maxPeople || pkg.availableSeats || 0,
     bookedSeats:    pkg.bookedSeats || 0,
     rating:         pkg.rating || 0,
-    status:         pkg.status || 'ACTIVE',
+    status:         pkg.status || 'PENDING',
     packageImage:   pkg.packageImage || null,
+    description:    pkg.description || '',
+    driverId:       pkg.driverId || pkg.driver?.id || '',
   });
 
   const getImagesForPkg = useCallback(
@@ -259,15 +266,24 @@ const Packages = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const [pkgRes, imgRes] = await Promise.allSettled([
+      const [pkgRes, imgRes, drvRes] = await Promise.allSettled([
         packageApi.allPackages(),
         imageApi.allImages(),
+        driverApi.allDrivers(),
       ]);
 
       const rawPkgs = pkgRes.status === 'fulfilled' && Array.isArray(pkgRes.value) && pkgRes.value.length
         ? pkgRes.value : MOCK_PACKAGES;
       const rawImgs = imgRes.status === 'fulfilled' && Array.isArray(imgRes.value) && imgRes.value.length
         ? imgRes.value : MOCK_IMAGES_FLAT;
+      const rawDrivers = drvRes.status === 'fulfilled' && Array.isArray(drvRes.value)
+        ? drvRes.value.map(d => ({
+            ...d,
+            driverName: d.driverName || (d.registration ? `${d.registration.firstName} ${d.registration.lastName}` : d.name || 'N/A')
+          }))
+        : [];
+
+      setDrivers(rawDrivers);
 
       const pkgList = rawPkgs.map(normalizePkg);
       const imgList = rawImgs.map(normalizeImg);

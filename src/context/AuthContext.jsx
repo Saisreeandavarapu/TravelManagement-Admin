@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Spring Boot endpoint: GET /registration/login/{id}/{password}
       // Note: id corresponds to the email/username
-      const response = await axios.post(`http://localhost:8080/registration/login`, { email, password });
+      const response = await axios.post(`https://travelmanagement-spring-boot-api.onrender.com/registration/login`, { email, password });
       
       // If the API returns a response that represents the user:
       if (response.data) {

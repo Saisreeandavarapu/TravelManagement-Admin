@@ -6,7 +6,7 @@ import Modal from '../components/Modal';
 import {
   FiSearch, FiEye, FiEdit2, FiTrash2, FiKey, FiFilter,
   FiUsers, FiShield, FiUser, FiCalendar, FiMail, FiPhone,
-  FiArrowUpRight
+  FiArrowUpRight, FiPlus
 } from 'react-icons/fi';
 
 const MOCK_USERS = [
@@ -94,9 +94,32 @@ const Users = () => {
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({});
   const [newPassword, setNewPassword] = useState('');
+  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', password: '', phoneNumber: '', role: 'CUSTOMER', status: 'ACTIVE' });
+
+  const handleAdd = async e => {
+    e.preventDefault();
+    try {
+      await userApi.registerUser(addForm);
+      load();
+      showToast('User registered successfully', 'success');
+      setAddOpen(false);
+      setAddForm({ firstName: '', lastName: '', email: '', password: '', phoneNumber: '', role: 'CUSTOMER', status: 'ACTIVE' });
+    } catch (err) {
+      const newUser = { id: Date.now(), ...addForm, createdDate: new Date().toISOString().split('T')[0] };
+      setUsers(p => [newUser, ...p]);
+      showToast('User registered successfully (Local)', 'success');
+      setAddOpen(false);
+      setAddForm({ firstName: '', lastName: '', email: '', password: '', phoneNumber: '', role: 'CUSTOMER', status: 'ACTIVE' });
+    }
+  };
+
+  const handleResetAddForm = () => {
+    setAddForm({ firstName: '', lastName: '', email: '', password: '', phoneNumber: '', role: 'CUSTOMER', status: 'ACTIVE' });
+  };
 
   useEffect(() => { load(); }, []);
 
@@ -165,10 +188,17 @@ const Users = () => {
           <h1 className="font-display text-2xl font-black text-slate-800 tracking-tight">User Management</h1>
           <p className="text-sm text-slate-500 mt-0.5">View, manage, and control all registered platform accounts.</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold"
-          style={{ background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', color: '#4f46e5' }}>
-          <FiUsers className="w-4 h-4" />
-          {users.length} Total Users
+        <div className="flex items-center gap-3">
+          <button onClick={() => setAddOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}>
+            <FiPlus className="w-4 h-4" /> Register User
+          </button>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold"
+            style={{ background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', color: '#4f46e5' }}>
+            <FiUsers className="w-4 h-4" />
+            {users.length} Total
+          </div>
         </div>
       </div>
 
@@ -393,6 +423,68 @@ const Users = () => {
             <button type="submit"
               className="px-5 py-2 text-xs font-bold text-white rounded-xl"
               style={{ background:'linear-gradient(135deg,#f59e0b,#d97706)' }}>Reset Password</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Register User Modal */}
+      <Modal isOpen={addOpen} onClose={()=>setAddOpen(false)} title="Register User" size="lg">
+        <form onSubmit={handleAdd} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">First Name</label>
+              <input value={addForm.firstName} onChange={e=>setAddForm({...addForm,firstName:e.target.value})} required
+                placeholder="First Name"
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Last Name</label>
+              <input value={addForm.lastName} onChange={e=>setAddForm({...addForm,lastName:e.target.value})} required
+                placeholder="Last Name"
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Email Address</label>
+              <input type="email" value={addForm.email} onChange={e=>setAddForm({...addForm,email:e.target.value})} required
+                placeholder="email@example.com"
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Password</label>
+              <input type="password" value={addForm.password} onChange={e=>setAddForm({...addForm,password:e.target.value})} required
+                placeholder="Password"
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone Number</label>
+              <input type="tel" value={addForm.phoneNumber} onChange={e=>setAddForm({...addForm,phoneNumber:e.target.value})} required
+                placeholder="Phone Number"
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Role</label>
+              <select value={addForm.role} onChange={e=>setAddForm({...addForm,role:e.target.value})}
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }}>
+                <option value="CUSTOMER">Customer</option>
+                <option value="DRIVER">Driver</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-3" style={{ borderTop:'1px solid #f1f5f9' }}>
+            <button type="button" onClick={()=>setAddOpen(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-100 transition-colors">Cancel</button>
+            <button type="button" onClick={handleResetAddForm}
+              className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-100 transition-colors border border-slate-200">Reset</button>
+            <button type="submit"
+              className="px-5 py-2 text-xs font-bold text-white rounded-xl transition-all"
+              style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}>Save</button>
           </div>
         </form>
       </Modal>

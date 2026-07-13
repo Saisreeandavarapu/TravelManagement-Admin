@@ -49,10 +49,17 @@ const Drivers = () => {
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({});
 
+  const [users, setUsers] = useState([]);
   const [addForm, setAddForm] = useState({
-    firstName:'', lastName:'', email:'', password:'', phoneNumber:'',
-    licenseNumber:'', vehicleName:'', vehicleType:'Van', experienceYears:'',
-    address:'', city:'', state:''
+    userId: '',
+    licenseNumber: '',
+    vehicleName: '',
+    vehicleType: 'Van',
+    experienceYears: '',
+    address: '',
+    city: '',
+    state: '',
+    status: 'PENDING'
   });
 
   useEffect(() => { load(); }, []);
@@ -60,17 +67,25 @@ const Drivers = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await driverApi.allDrivers();
-      const list = Array.isArray(data) && data.length ? data.map(d => ({
+      const [drvData, usrData] = await Promise.all([
+        driverApi.allDrivers().catch(() => []),
+        userApi.allUsers().catch(() => [])
+      ]);
+      const list = Array.isArray(drvData) && drvData.length ? drvData.map(d => ({
         ...d,
         driverName: d.driverName || (d.registration ? `${d.registration.firstName} ${d.registration.lastName}` : d.name || 'N/A'),
         email: d.email || d.registration?.email || 'N/A',
         phoneNumber: d.phoneNumber || d.registration?.phoneNumber || 'N/A',
         experience: d.experience || (d.experienceYears ? `${d.experienceYears} Years` : '0 Years'),
-        vehicleNumber: d.vehicleNumber || 'N/A'
-      })) : MOCK_DRIVERS;
+        vehicleNumber: d.vehicleNumber || 'N/A',
+        status: d.status || 'PENDING'
+      })) : MOCK_DRIVERS.map(d => ({ ...d, status: d.status === 'ACTIVE' ? 'APPROVED' : 'PENDING' }));
       setDrivers(list); setFiltered(list);
-    } catch { setDrivers(MOCK_DRIVERS); setFiltered(MOCK_DRIVERS); }
+      setUsers(usrData);
+    } catch {
+      setDrivers(MOCK_DRIVERS.map(d => ({ ...d, status: d.status === 'ACTIVE' ? 'APPROVED' : 'PENDING' })));
+      setFiltered(MOCK_DRIVERS.map(d => ({ ...d, status: d.status === 'ACTIVE' ? 'APPROVED' : 'PENDING' })));
+    }
     finally { setLoading(false); }
   };
 
@@ -91,7 +106,8 @@ const Drivers = () => {
   const pageItems = filtered.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
 
   const handleToggle = async driver => {
-    const next = driver.status?.toUpperCase() === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const current = driver.status?.toUpperCase() || 'PENDING';
+    const next = current === 'PENDING' ? 'APPROVED' : current === 'APPROVED' ? 'REJECTED' : 'PENDING';
     try { await driverApi.updateStatus(driver.id, next); load(); } catch { setDrivers(p=>p.map(d=>d.id===driver.id?{...d,status:next}:d)); }
     showToast(`Driver status → ${next}`, 'success');
   };
@@ -117,24 +133,71 @@ const Drivers = () => {
 
   const handleAddSubmit = async e => {
     e.preventDefault();
+    if (!addForm.userId) {
+      showToast('Please select a user', 'warning');
+      return;
+    }
+    const selectedUser = users.find(u => String(u.id) === String(addForm.userId));
+    if (!selectedUser) {
+      showToast('User not found', 'error');
+      return;
+    }
+    const payload = {
+      registration: selectedUser,
+      licenseNumber: addForm.licenseNumber,
+      vehicleName: addForm.vehicleName,
+      vehicleType: addForm.vehicleType,
+      experienceYears: parseInt(addForm.experienceYears) || parseInt(addForm.experience) || 0,
+      address: addForm.address,
+      city: addForm.city,
+      state: addForm.state,
+      status: addForm.status
+    };
     try {
-      const userResult = await userApi.registerUser({
-        firstName:addForm.firstName, lastName:addForm.lastName, email:addForm.email,
-        password:addForm.password, phoneNumber:addForm.phoneNumber, role:'DRIVER'
-      });
-      await driverApi.addDriver({
-        registration:userResult, licenseNumber:addForm.licenseNumber, vehicleName:addForm.vehicleName,
-        vehicleType:addForm.vehicleType, experienceYears:parseInt(addForm.experienceYears)||0,
-        address:addForm.address, city:addForm.city, state:addForm.state, status:'ACTIVE'
-      });
-      showToast('Driver added successfully', 'success'); setAddOpen(false);
-      setAddForm({ firstName:'', lastName:'', email:'', password:'', phoneNumber:'', licenseNumber:'', vehicleName:'', vehicleType:'Van', experienceYears:'', address:'', city:'', state:'' });
+      await driverApi.addDriver(payload);
+      showToast('Driver added successfully', 'success');
+      setAddOpen(false);
+      handleResetAddForm();
       load();
-    } catch (err) { showToast(err.message || 'Failed to add driver', 'error'); }
+    } catch (err) {
+      const mockNewDriver = {
+        id: Date.now(),
+        driverName: `${selectedUser.firstName} ${selectedUser.lastName}`,
+        email: selectedUser.email,
+        phoneNumber: selectedUser.phoneNumber,
+        registration: selectedUser,
+        licenseNumber: addForm.licenseNumber,
+        vehicleName: addForm.vehicleName,
+        vehicleType: addForm.vehicleType,
+        experience: `${addForm.experienceYears || addForm.experience || 0} Years`,
+        address: addForm.address,
+        city: addForm.city,
+        state: addForm.state,
+        status: addForm.status
+      };
+      setDrivers(p => [mockNewDriver, ...p]);
+      showToast('Driver added successfully (Local)', 'success');
+      setAddOpen(false);
+      handleResetAddForm();
+    }
   };
 
-  const activeDrivers   = drivers.filter(d => d.status?.toUpperCase() === 'ACTIVE').length;
-  const inactiveDrivers = drivers.filter(d => d.status?.toUpperCase() !== 'ACTIVE').length;
+  const handleResetAddForm = () => {
+    setAddForm({
+      userId: '',
+      licenseNumber: '',
+      vehicleName: '',
+      vehicleType: 'Van',
+      experienceYears: '',
+      address: '',
+      city: '',
+      state: '',
+      status: 'PENDING'
+    });
+  };
+
+  const activeDrivers   = drivers.filter(d => d.status?.toUpperCase() === 'APPROVED' || d.status?.toUpperCase() === 'ACTIVE').length;
+  const inactiveDrivers = drivers.filter(d => d.status?.toUpperCase() !== 'APPROVED' && d.status?.toUpperCase() !== 'ACTIVE').length;
 
   const InfoRow = ({ label, value }) => (
     <div className="p-3 rounded-xl" style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }}>
@@ -208,7 +271,8 @@ const Drivers = () => {
               </thead>
               <tbody>
                 {pageItems.length > 0 ? pageItems.map(driver => {
-                  const isActive = driver.status?.toUpperCase() === 'ACTIVE';
+                  const statusUpper = driver.status?.toUpperCase() || 'PENDING';
+                  const isActive = statusUpper === 'APPROVED' || statusUpper === 'ACTIVE';
                   const vColor = VEHICLE_COLORS[driver.vehicleType] || '#64748b';
                   return (
                     <tr key={driver.id} className="table-row-hover transition-all group" style={{ borderBottom:'1px solid #f1f5f9' }}>
@@ -240,7 +304,13 @@ const Drivers = () => {
                           {isActive
                             ? <FiToggleRight className="w-6 h-6" style={{ color:'#10b981' }} />
                             : <FiToggleLeft  className="w-6 h-6 text-slate-300" />}
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-slate-500 bg-slate-100 border border-slate-200'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            statusUpper === 'APPROVED' || statusUpper === 'ACTIVE'
+                              ? 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+                              : statusUpper === 'PENDING'
+                                ? 'text-amber-700 bg-amber-50 border border-amber-200'
+                                : 'text-rose-700 bg-rose-50 border border-rose-200'
+                          }`}>
                             {driver.status}
                           </span>
                         </button>
@@ -330,53 +400,59 @@ const Drivers = () => {
       </Modal>
 
       {/* Add Modal */}
-      <Modal isOpen={addOpen} onClose={()=>setAddOpen(false)} title="Add New Driver" size="2xl">
-        <form onSubmit={handleAddSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-            <div className="space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest pb-2 border-b" style={{ color:'#6366f1', borderColor:'#e0e7ff' }}>1. Account Details</p>
-              <div className="grid grid-cols-2 gap-3">
-                <InputField label="First Name" type="text" value={addForm.firstName} onChange={e=>setAddForm({...addForm,firstName:e.target.value})} required />
-                <InputField label="Last Name"  type="text" value={addForm.lastName}  onChange={e=>setAddForm({...addForm,lastName:e.target.value})}  required />
-              </div>
-              <InputField label="Email"    type="email"    value={addForm.email}       onChange={e=>setAddForm({...addForm,email:e.target.value})}       required />
-              <InputField label="Password" type="password" value={addForm.password}    onChange={e=>setAddForm({...addForm,password:e.target.value})}    required />
-              <InputField label="Phone"    type="tel"      value={addForm.phoneNumber} onChange={e=>setAddForm({...addForm,phoneNumber:e.target.value})} required />
+      <Modal isOpen={addOpen} onClose={()=>setAddOpen(false)} title="Add New Driver" size="lg">
+        <form onSubmit={handleAddSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Registration / User</label>
+              <select value={addForm.userId} onChange={e=>setAddForm({...addForm,userId:e.target.value})} required
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}>
+                <option value="">-- Choose User --</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email})</option>
+                ))}
+              </select>
             </div>
-            <div className="space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest pb-2 border-b" style={{ color:'#06b6d4', borderColor:'#cffafe' }}>2. Vehicle & Driving</p>
-              <div className="grid grid-cols-2 gap-3">
-                <InputField label="License No."      type="text"   value={addForm.licenseNumber}  onChange={e=>setAddForm({...addForm,licenseNumber:e.target.value})}  required />
-                <InputField label="Experience (yrs)" type="number" value={addForm.experienceYears} onChange={e=>setAddForm({...addForm,experienceYears:e.target.value})} required min="0" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <InputField label="Vehicle Name" type="text" value={addForm.vehicleName} onChange={e=>setAddForm({...addForm,vehicleName:e.target.value})} required />
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vehicle Type</label>
-                  <select value={addForm.vehicleType} onChange={e=>setAddForm({...addForm,vehicleType:e.target.value})}
-                    className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
-                    style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}>
-                    {VEHICLE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              </div>
-              <InputField label="Address" type="text" value={addForm.address} onChange={e=>setAddForm({...addForm,address:e.target.value})} required />
-              <div className="grid grid-cols-2 gap-3">
-                <InputField label="City"  type="text" value={addForm.city}  onChange={e=>setAddForm({...addForm,city:e.target.value})}  required />
-                <InputField label="State" type="text" value={addForm.state} onChange={e=>setAddForm({...addForm,state:e.target.value})} required />
-              </div>
+            <InputField label="License Number" type="text" value={addForm.licenseNumber} onChange={e=>setAddForm({...addForm,licenseNumber:e.target.value})} required />
+            <InputField label="Vehicle Name" type="text" value={addForm.vehicleName} onChange={e=>setAddForm({...addForm,vehicleName:e.target.value})} required />
+            
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vehicle Type</label>
+              <select value={addForm.vehicleType} onChange={e=>setAddForm({...addForm,vehicleType:e.target.value})}
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}>
+                {VEHICLE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <InputField label="Experience (Years)" type="number" value={addForm.experienceYears} onChange={e=>setAddForm({...addForm,experienceYears:e.target.value})} required min="0" />
+            <InputField label="Address" type="text" value={addForm.address} onChange={e=>setAddForm({...addForm,address:e.target.value})} required />
+            <InputField label="City" type="text" value={addForm.city} onChange={e=>setAddForm({...addForm,city:e.target.value})} required />
+            <InputField label="State" type="text" value={addForm.state} onChange={e=>setAddForm({...addForm,state:e.target.value})} required />
+            
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</label>
+              <select value={addForm.status} onChange={e=>setAddForm({...addForm,status:e.target.value})}
+                className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
+                style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}>
+                <option value="PENDING">PENDING</option>
+                <option value="APPROVED">APPROVED</option>
+                <option value="REJECTED">REJECTED</option>
+              </select>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-3" style={{ borderTop:'1px solid #f1f5f9' }}>
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
             <button type="button" onClick={()=>setAddOpen(false)}
               className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-100">Cancel</button>
+            <button type="button" onClick={handleResetAddForm}
+              className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-100 border border-slate-200">Reset</button>
             <button type="submit"
               className="px-5 py-2 text-xs font-bold text-white rounded-xl"
-              style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}>Add Driver</button>
+              style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}>Save</button>
           </div>
         </form>
       </Modal>
-
+ 
       {/* Edit Modal */}
       <Modal isOpen={editOpen} onClose={()=>setEditOpen(false)} title="Edit Driver" size="lg">
         <form onSubmit={handleEdit} className="space-y-4">
@@ -394,17 +470,23 @@ const Drivers = () => {
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</label>
-              <select value={form.status||'ACTIVE'} onChange={e=>setForm({...form,status:e.target.value})}
+              <select value={form.status||'PENDING'} onChange={e=>setForm({...form,status:e.target.value})}
                 className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
                 style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#0f172a' }}>
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
+                <option value="PENDING">PENDING</option>
+                <option value="APPROVED">APPROVED</option>
+                <option value="REJECTED">REJECTED</option>
               </select>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-3" style={{ borderTop:'1px solid #f1f5f9' }}>
             <button type="button" onClick={()=>setEditOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-100">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-bold text-white rounded-xl" style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}>Save Changes</button>
+            <button type="button" onClick={() => {
+              if (selected) {
+                setForm({ ...selected, driverName: selected.driverName||'', experience: selected.experience?.replace(' Years','')||'' });
+              }
+            }} className="px-4 py-2 text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-100 border border-slate-200">Reset</button>
+            <button type="submit" className="px-5 py-2 text-xs font-bold text-white rounded-xl" style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}>Save</button>
           </div>
         </form>
       </Modal>
