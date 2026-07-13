@@ -343,23 +343,7 @@ const Reviews = () => {
         <form onSubmit={handleAddSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Select Package</label>
-              <select
-                value={addForm.packageId}
-                onChange={(e) => setAddForm({ ...addForm, packageId: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none cursor-pointer"
-                required
-              >
-                <option value="">-- Select Package --</option>
-                {packages.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>
-                    #{pkg.id} – {pkg.title || pkg.packageName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Customer Name</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Customer</label>
               <input
                 type="text"
                 placeholder="e.g. John Doe"
@@ -369,11 +353,27 @@ const Reviews = () => {
                 required
               />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Package</label>
+              <select
+                value={addForm.packageId}
+                onChange={(e) => setAddForm({ ...addForm, packageId: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none cursor-pointer"
+                required
+              >
+                <option value="">-- Choose Package --</option>
+                {packages.map((pkg) => (
+                  <option key={pkg.id} value={pkg.id}>
+                    #{pkg.id} – {pkg.title || pkg.packageName}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Star Rating</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Rating (1–5 Stars)</label>
               <div className="flex items-center gap-3">
                 <InteractiveStars rating={addForm.rating} onRate={(r) => setAddForm({ ...addForm, rating: r })} />
                 <span className="text-xs font-bold text-amber-500">{addForm.rating} / 5 Stars</span>
@@ -392,7 +392,7 @@ const Reviews = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Review Comment</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Comment</label>
             <textarea
               placeholder="Describe the traveler experience in detail..."
               value={addForm.comment}
@@ -412,12 +412,25 @@ const Reviews = () => {
               Cancel
             </button>
             <button
+              type="button"
+              onClick={() => setAddForm({
+                packageId: '',
+                customerName: '',
+                rating: 5,
+                comment: '',
+                reviewDate: new Date().toISOString().split('T')[0]
+              })}
+              className="px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+            >
+              Reset
+            </button>
+            <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-750 rounded-xl shadow-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-md transition-colors disabled:opacity-50"
             >
               {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              Submit Review
+              Submit
             </button>
           </div>
         </form>

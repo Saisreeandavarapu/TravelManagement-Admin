@@ -427,10 +427,9 @@ const Users = () => {
         </form>
       </Modal>
 
-      {/* Register User Modal */}
       <Modal isOpen={addOpen} onClose={()=>setAddOpen(false)} title="Register User" size="lg">
         <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">First Name</label>
               <input value={addForm.firstName} onChange={e=>setAddForm({...addForm,firstName:e.target.value})} required

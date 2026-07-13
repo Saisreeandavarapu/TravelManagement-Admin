@@ -25,7 +25,7 @@ const MOCK_BOOKINGS = [
   { id: 5, customerName: 'Sarah Smith', totalAmount: 898 },
 ];
 
-const PAYMENT_METHODS = ['CREDIT_CARD', 'DEBIT_CARD', 'UPI', 'NET_BANKING'];
+const PAYMENT_METHODS = ['UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING', 'CASH'];
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'N/A';
@@ -218,7 +218,7 @@ const Payments = () => {
 
   const getStatusConfig = (status) => {
     const st = status?.toUpperCase();
-    if (st === 'CONFIRMED')
+    if (st === 'CONFIRMED' || st === 'SUCCESS')
       return { badge: 'bg-emerald-50 text-emerald-700 border-emerald-100', dot: 'bg-emerald-500', select: 'text-emerald-755 border-emerald-201' };
     if (st === 'PENDING')
       return { badge: 'bg-amber-50 text-amber-700 border-amber-100', dot: 'bg-amber-500', select: 'text-amber-755 border-amber-201' };
@@ -227,6 +227,7 @@ const Payments = () => {
 
   const statusSelectColor = (s) => ({
     CONFIRMED: 'text-emerald-700 border-emerald-200 bg-emerald-50',
+    SUCCESS: 'text-emerald-700 border-emerald-200 bg-emerald-50',
     PENDING: 'text-amber-700 border-amber-200 bg-amber-50',
     REJECTED: 'text-rose-700 border-rose-200 bg-rose-50',
   }[s?.toUpperCase()] || 'text-slate-700 border-slate-200 bg-white');
@@ -429,7 +430,7 @@ const Payments = () => {
         ) : (
           <form onSubmit={handleAddSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Select Booking Reference</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Booking</label>
               <select
                 value={addForm.bookingId}
                 onChange={e => handleAddChange('bookingId', e.target.value)}
@@ -445,11 +446,9 @@ const Payments = () => {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">
-                  Amount <span className="text-emerald-600 font-semibold">(auto)</span>
-                </label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Amount</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-450 font-bold text-sm">$</span>
                   <input
@@ -470,7 +469,7 @@ const Payments = () => {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none cursor-pointer"
                 >
                   <option value="PENDING">PENDING</option>
-                  <option value="CONFIRMED">CONFIRMED</option>
+                  <option value="SUCCESS">SUCCESS</option>
                   <option value="REJECTED">REJECTED</option>
                 </select>
               </div>
@@ -478,27 +477,27 @@ const Payments = () => {
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Payment Method</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {PAYMENT_METHODS.map(m => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => setAddForm({ ...addForm, paymentMethod: m })}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                    className={`flex flex-col items-center justify-center gap-1 py-2 rounded-xl border text-[10px] font-bold transition-all ${
                       addForm.paymentMethod === m
                         ? 'bg-indigo-600 border-indigo-650 text-white shadow-sm'
                         : 'bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100'
                     }`}
                   >
-                    <span>{getMethodIcon(m)}</span>
-                    <span>{m.replace(/_/g, ' ')}</span>
+                    <span className="text-sm">{getMethodIcon(m)}</span>
+                    <span className="truncate max-w-full px-1">{m.replace(/_/g, ' ')}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Transaction ID (optional)</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Transaction ID</label>
               <input
                 type="text"
                 value={addForm.transactionId}
@@ -520,7 +519,8 @@ const Payments = () => {
 
             <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
               <button type="button" onClick={() => setIsAddOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-              <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Record Payment</button>
+              <button type="button" onClick={() => setAddForm(EMPTY_ADD_FORM)} className="px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-xl transition-colors">Reset</button>
+              <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Save</button>
             </div>
           </form>
         )}

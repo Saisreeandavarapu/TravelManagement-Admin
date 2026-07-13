@@ -79,12 +79,28 @@ const Images = () => {
     e.preventDefault();
     if (!addForm.packageId || !addForm.imageUrl.trim()) { showToast('Fill all fields', 'warning'); return; }
     setUploading(true);
-    const payload = { packageId: addForm.packageId, packageName: getPackageName(addForm.packageId), imageUrl: addForm.imageUrl };
-    try { await imageApi.addImage(payload); loadAll(); } catch {
-      setImages(p => [{ id: Date.now(), ...payload }, ...p]);
+    const urls = addForm.imageUrl.split(/[\n,]+/).map(u => u.trim()).filter(Boolean);
+    try {
+      for (const url of urls) {
+        const payload = { packageId: addForm.packageId, packageName: getPackageName(addForm.packageId), imageUrl: url };
+        await imageApi.addImage(payload);
+      }
+      await loadAll();
+      showToast('Images added successfully', 'success');
+    } catch {
+      const newItems = urls.map((url, i) => ({
+        id: Date.now() + i,
+        packageId: addForm.packageId,
+        packageName: getPackageName(addForm.packageId),
+        imageUrl: url
+      }));
+      setImages(p => [...newItems, ...p]);
+      showToast('Images added locally', 'success');
+    } finally {
+      setAddOpen(false);
+      setAddForm({ packageId: '', imageUrl: '' });
+      setUploading(false);
     }
-    showToast('Image added successfully', 'success');
-    setAddOpen(false); setAddForm({ packageId: '', imageUrl: '' }); setUploading(false);
   };
 
   const openEdit = (img) => {
@@ -240,7 +256,7 @@ const Images = () => {
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add Package Image">
         <form onSubmit={handleAdd} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Select Package</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Package</label>
             <select value={addForm.packageId} onChange={e => setAddForm({ ...addForm, packageId: e.target.value })} required
               className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
               <option value="">-- Select Package --</option>
@@ -248,22 +264,26 @@ const Images = () => {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Image URL</label>
-            <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <FiLink className="text-slate-450 w-4 h-4 flex-shrink-0" />
-              <input type="url" value={addForm.imageUrl} onChange={e => setAddForm({ ...addForm, imageUrl: e.target.value })} placeholder="https://images.unsplash.com/..." required
-                className="bg-transparent outline-none text-sm w-full text-slate-800 placeholder-slate-450" />
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Upload Image (Multiple Images - URL per line/comma)</label>
+            <div className="flex gap-2 rounded-xl px-3 py-2.5" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <FiLink className="text-slate-450 w-4 h-4 flex-shrink-0 mt-1" />
+              <textarea value={addForm.imageUrl} onChange={e => setAddForm({ ...addForm, imageUrl: e.target.value })} placeholder="https://images.unsplash.com/photo1&#10;https://images.unsplash.com/photo2" required rows={3}
+                className="bg-transparent outline-none text-sm w-full text-slate-800 placeholder-slate-450 resize-none font-mono text-xs" />
             </div>
           </div>
           {addForm.imageUrl && (
-            <img src={addForm.imageUrl} alt="preview" className="w-full h-40 object-cover rounded-xl border border-slate-200"
-              onError={e => e.target.style.display = 'none'} />
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Preview (First Image)</label>
+              <img src={addForm.imageUrl.split(/[\n,]+/)[0]} alt="preview" className="w-full h-40 object-cover rounded-xl border border-slate-200"
+                onError={e => e.target.style.display = 'none'} />
+            </div>
           )}
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button type="button" onClick={() => setAddOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+            <button type="button" onClick={() => setAddForm({ packageId: '', imageUrl: '' })} className="px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-xl transition-colors">Reset</button>
             <button type="submit" disabled={uploading} className="flex items-center gap-2 px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors disabled:opacity-60">
               {uploading && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              Save Image
+              Upload
             </button>
           </div>
         </form>
@@ -281,7 +301,7 @@ const Images = () => {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Image URL</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Upload Image</label>
             <input type="url" value={editForm.imageUrl} onChange={e => setEditForm({ ...editForm, imageUrl: e.target.value })} required
               className="w-full text-sm px-3 py-2.5 rounded-xl outline-none font-mono text-xs" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }} />
           </div>
@@ -291,7 +311,8 @@ const Images = () => {
           )}
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button type="button" onClick={() => setEditOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Update Image</button>
+            <button type="button" onClick={() => setEditForm({ id: editForm.id, packageId: '', imageUrl: '' })} className="px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-xl transition-colors">Reset</button>
+            <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Save</button>
           </div>
         </form>
       </Modal>

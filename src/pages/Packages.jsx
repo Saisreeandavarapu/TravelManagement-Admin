@@ -50,11 +50,17 @@ const StarRating = ({ rating }) => (
 );
 
 const StatusBadge = ({ status }) => {
-  const active = status?.toUpperCase() === 'ACTIVE';
+  const s = (status || 'PENDING').toUpperCase();
+  const styles = {
+    APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    PENDING:  'bg-amber-50 text-amber-700 border-amber-200',
+    REJECTED: 'bg-red-50 text-red-700 border-red-200',
+  };
+  const dots = { APPROVED: 'bg-emerald-500', PENDING: 'bg-amber-500', REJECTED: 'bg-red-500' };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-      {status || 'ACTIVE'}
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${styles[s] || styles.PENDING}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dots[s] || dots.PENDING}`} />
+      {s}
     </span>
   );
 };
@@ -134,34 +140,32 @@ const ImageStrip = ({ images, onManage }) => {
 };
 
 /* ── Form fields ── */
-const PackageFormFields = ({ form, onChange }) => (
+const PackageFormFields = ({ form, onChange, drivers = [] }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {/* Driver select */}
     <div className="sm:col-span-2 space-y-1">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Cover Image URL (optional)</label>
-      <input value={form.packageImage || ''} onChange={e => onChange('packageImage', e.target.value)}
-        placeholder="https://images.unsplash.com/..."
-        className="w-full text-sm px-3 py-2.5 rounded-xl outline-none"
-        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }} />
-      {form.packageImage && (
-        <img src={form.packageImage} alt="preview" className="mt-2 w-full h-32 object-cover rounded-xl border border-slate-200"
-          onError={e => e.target.style.display = 'none'} />
-      )}
+      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Driver</label>
+      <select value={form.driverId || ''} onChange={e => onChange('driverId', e.target.value)}
+        className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
+        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+        <option value="">— Select Driver —</option>
+        {drivers.map(d => (
+          <option key={d.id} value={d.id}>{d.driverName || `Driver #${d.id}`}</option>
+        ))}
+      </select>
     </div>
     {[
       { label: 'Package Title', key: 'title', placeholder: 'e.g. Goa Beach Tour', type: 'text', required: true },
-      { label: 'Destination', key: 'destination', placeholder: 'e.g. Goa, India', type: 'text', required: true },
-      { label: 'Duration', key: 'duration', placeholder: 'e.g. 5 Days / 4 Nights', type: 'text', required: true },
       { label: 'Original Price ($)', key: 'originalPrice', placeholder: '999', type: 'number', required: true },
-      { label: 'Discount (%)', key: 'discount', placeholder: '0', type: 'number', required: false },
-      { label: 'Available Seats', key: 'availableSeats', placeholder: '20', type: 'number', required: true },
-      { label: 'Booked Seats', key: 'bookedSeats', placeholder: '0', type: 'number', required: false },
-      { label: 'Rating (0–5)', key: 'rating', placeholder: '4.5', type: 'number', required: true },
+      { label: 'Discount Percentage (%)', key: 'discount', placeholder: '0', type: 'number', required: false },
+      { label: 'Duration (Days)', key: 'durationDays', placeholder: 'e.g. 5', type: 'number', required: true },
+      { label: 'Maximum People', key: 'maxPeople', placeholder: 'e.g. 20', type: 'number', required: true },
     ].map(field => (
       <div key={field.key} className="space-y-1">
         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{field.label}</label>
         <input type={field.type} value={form[field.key] || ''} onChange={e => onChange(field.key, e.target.value)}
           placeholder={field.placeholder} required={field.required}
-          min={field.type === 'number' ? '0' : undefined} step={field.key === 'rating' ? '0.1' : undefined}
+          min={field.type === 'number' ? '0' : undefined}
           className="w-full text-sm px-3 py-2.5 rounded-xl outline-none"
           style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }} />
       </div>
@@ -173,21 +177,23 @@ const PackageFormFields = ({ form, onChange }) => (
       <input value={form.offerPrice || ''} readOnly disabled
         className="w-full text-sm px-3 py-2.5 rounded-xl font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 cursor-not-allowed" />
     </div>
-    <div className="space-y-1">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Package Type</label>
-      <select value={form.packageType || 'Beach'} onChange={e => onChange('packageType', e.target.value)}
-        className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
-        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-        {PACKAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-      </select>
+    {/* Description textarea */}
+    <div className="sm:col-span-2 space-y-1">
+      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Description</label>
+      <textarea value={form.description || ''} onChange={e => onChange('description', e.target.value)}
+        placeholder="Describe the travel package..."
+        rows={3}
+        className="w-full text-sm px-3 py-2.5 rounded-xl outline-none resize-none"
+        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }} />
     </div>
     <div className="space-y-1">
       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</label>
-      <select value={form.status || 'ACTIVE'} onChange={e => onChange('status', e.target.value)}
+      <select value={form.status || 'PENDING'} onChange={e => onChange('status', e.target.value)}
         className="w-full text-sm px-3 py-2.5 rounded-xl outline-none cursor-pointer"
         style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-        <option value="ACTIVE">ACTIVE</option>
-        <option value="INACTIVE">INACTIVE</option>
+        <option value="PENDING">PENDING</option>
+        <option value="APPROVED">APPROVED</option>
+        <option value="REJECTED">REJECTED</option>
       </select>
     </div>
   </div>
@@ -702,10 +708,11 @@ const Packages = () => {
       {/* ── Add Modal ── */}
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add New Tour Package" size="xl">
         <form onSubmit={handleAdd} className="space-y-4">
-          <PackageFormFields form={addForm} onChange={handleFormChange(setAddForm)} />
+          <PackageFormFields form={addForm} onChange={handleFormChange(setAddForm)} drivers={drivers} />
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button type="button" onClick={() => setAddOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Add Package</button>
+            <button type="button" onClick={() => setAddForm(EMPTY_FORM)} className="px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-xl transition-colors">Reset</button>
+            <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Save</button>
           </div>
         </form>
       </Modal>
@@ -713,10 +720,11 @@ const Packages = () => {
       {/* ── Edit Modal ── */}
       <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit Package" size="xl">
         <form onSubmit={handleEdit} className="space-y-4">
-          <PackageFormFields form={editForm} onChange={handleFormChange(setEditForm)} />
+          <PackageFormFields form={editForm} onChange={handleFormChange(setEditForm)} drivers={drivers} />
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button type="button" onClick={() => setEditOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Save Changes</button>
+            <button type="button" onClick={() => setEditForm(prev => ({ ...EMPTY_FORM, id: prev.id }))} className="px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-xl transition-colors">Reset</button>
+            <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Save</button>
           </div>
         </form>
       </Modal>

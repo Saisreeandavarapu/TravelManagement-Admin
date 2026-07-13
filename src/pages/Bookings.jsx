@@ -3,6 +3,7 @@ import { useToast } from '../context/ToastContext';
 import { bookingApi } from '../services/bookingApi';
 import { userApi } from '../services/userApi';
 import { packageApi } from '../services/packageApi';
+import { driverApi } from '../services/driverApi';
 import Spinner from '../components/Spinner';
 import Modal from '../components/Modal';
 import {
@@ -32,11 +33,12 @@ const MOCK_PACKAGES = [
   { id: 5, title: 'Maldives Island Escapade', offerPrice: 1319 },
 ];
 
-const STATUS_OPTIONS = ['PENDING', 'CONFIRMED', 'CANCELLED'];
+const STATUS_OPTIONS = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'];
 
 const StatusBadge = ({ status }) => {
-  const isConfirmed = status?.toUpperCase() === 'CONFIRMED';
-  const isPending = status?.toUpperCase() === 'PENDING';
+  const s = status?.toUpperCase() || 'PENDING';
+  const isConfirmed = s === 'CONFIRMED' || s === 'COMPLETED';
+  const isPending = s === 'PENDING';
 
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border ${
@@ -48,7 +50,7 @@ const StatusBadge = ({ status }) => {
         isConfirmed ? 'bg-emerald-500' :
         isPending ? 'bg-amber-500' : 'bg-rose-500'
       }`} />
-      {status || 'PENDING'}
+      {s}
     </span>
   );
 };
@@ -58,6 +60,7 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-
 const EMPTY_ADD_FORM = {
   customerId: '',
   packageId: '',
+  driverId: '',
   travelDate: '',
   numberOfPersons: '1',
   totalAmount: '',
@@ -81,6 +84,7 @@ const Bookings = () => {
   const [addForm, setAddForm] = useState(EMPTY_ADD_FORM);
   const [users, setUsers] = useState([]);
   const [packages, setPackages] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [loadingMeta, setLoadingMeta] = useState(false);
 
   useEffect(() => { load(); }, []);
@@ -108,15 +112,21 @@ const Bookings = () => {
     setAddForm(EMPTY_ADD_FORM);
     setLoadingMeta(true);
     try {
-      const [usersData, pkgsData] = await Promise.all([
+      const [usersData, pkgsData, driversData] = await Promise.all([
         userApi.allUsers().catch(() => MOCK_USERS),
         packageApi.allPackages().catch(() => MOCK_PACKAGES),
+        driverApi.allDrivers().catch(() => []),
       ]);
       setUsers(Array.isArray(usersData) && usersData.length ? usersData : MOCK_USERS);
       setPackages(Array.isArray(pkgsData) && pkgsData.length ? pkgsData : MOCK_PACKAGES);
+      setDrivers(Array.isArray(driversData) ? driversData.map(d => ({
+        ...d,
+        driverName: d.driverName || (d.registration ? `${d.registration.firstName} ${d.registration.lastName}` : d.name || `Driver #${d.id}`)
+      })) : []);
     } catch {
       setUsers(MOCK_USERS);
       setPackages(MOCK_PACKAGES);
+      setDrivers([]);
     } finally { setLoadingMeta(false); }
   };
 
@@ -169,10 +179,12 @@ const Bookings = () => {
 
     const selectedUser = users.find(u => String(u.id) === String(addForm.customerId));
     const selectedPkg = packages.find(p => String(p.id) === String(addForm.packageId));
+    const selectedDriver = drivers.find(d => String(d.id) === String(addForm.driverId));
 
     const payload = {
       registration: selectedUser ? { id: selectedUser.id } : null,
       aPackage: selectedPkg ? { id: selectedPkg.id } : null,
+      driver: selectedDriver ? { id: selectedDriver.id } : null,
       travelDate: addForm.travelDate,
       numberOfPersons: parseInt(addForm.numberOfPersons) || 1,
       totalAmount: parseFloat(addForm.totalAmount) || 0,
@@ -373,7 +385,7 @@ const Bookings = () => {
         ) : (
           <form onSubmit={handleAddSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Select Customer</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Customer</label>
               <select
                 value={addForm.customerId}
                 onChange={e => handleAddChange('customerId', e.target.value)}
@@ -390,7 +402,7 @@ const Bookings = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Select Package</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Package</label>
               <select
                 value={addForm.packageId}
                 onChange={e => handleAddChange('packageId', e.target.value)}
@@ -406,9 +418,25 @@ const Bookings = () => {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Driver</label>
+              <select
+                value={addForm.driverId}
+                onChange={e => handleAddChange('driverId', e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-primary-400 outline-none cursor-pointer"
+              >
+                <option value="">— Choose a Driver (Optional) —</option>
+                {drivers.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.driverName || `Driver #${d.id}`} ({d.licenseNumber})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Travel Date</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-455">Travel Date</label>
                 <input
                   type="date"
                   value={addForm.travelDate}
@@ -420,7 +448,7 @@ const Bookings = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Number of Persons</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-455">Number of Persons</label>
                 <input
                   type="number"
                   min="1"
@@ -432,9 +460,9 @@ const Bookings = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-455">
                   Total Amount <span className="text-emerald-600 font-semibold">(auto)</span>
                 </label>
                 <div className="relative">
@@ -450,7 +478,7 @@ const Bookings = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-450">Booking Status</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-455">Booking Status</label>
                 <select
                   value={addForm.bookingStatus}
                   onChange={e => setAddForm({ ...addForm, bookingStatus: e.target.value })}
@@ -473,7 +501,8 @@ const Bookings = () => {
 
             <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
               <button type="button" onClick={() => setAddOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-              <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Create Booking</button>
+              <button type="button" onClick={() => setAddForm(EMPTY_ADD_FORM)} className="px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-xl transition-colors">Reset</button>
+              <button type="submit" className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">Save</button>
             </div>
           </form>
         )}

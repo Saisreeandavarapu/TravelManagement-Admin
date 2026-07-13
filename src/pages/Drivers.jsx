@@ -456,7 +456,7 @@ const Drivers = () => {
       {/* Edit Modal */}
       <Modal isOpen={editOpen} onClose={()=>setEditOpen(false)} title="Edit Driver" size="lg">
         <form onSubmit={handleEdit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[['Driver Name','driverName'],['Email','email'],['Phone','phoneNumber'],['License No.','licenseNumber'],['Vehicle Name','vehicleName'],['Vehicle No.','vehicleNumber'],['Experience','experience']].map(([label,key])=>(
               <InputField key={key} label={label} type="text" value={form[key]||''} onChange={e=>setForm({...form,[key]:e.target.value})} required />
             ))}
