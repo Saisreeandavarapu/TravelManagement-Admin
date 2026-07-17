@@ -92,9 +92,21 @@ const Login = () => {
     if (!email || !password) { showToast('Please fill in all fields', 'warning'); return; }
     setLoading(true);
     try {
-      await login(email, password);
-      showToast('Welcome back, Admin!', 'success');
-      navigate('/admin/dashboard');
+      const loggedUser = await login(email, password);
+      const role = loggedUser?.role?.toUpperCase();
+      if (role === 'ADMIN') {
+        showToast('Welcome back, Admin!', 'success');
+        navigate('/admin/dashboard');
+      } else if (role === 'DRIVER') {
+        showToast('Welcome back, Partner Driver!', 'success');
+        navigate('/driver/dashboard');
+      } else if (role === 'CUSTOMER') {
+        showToast(`Welcome back, ${loggedUser.firstName || 'Customer'}!`, 'success');
+        navigate('/customer/dashboard');
+      } else {
+        showToast('Logged in successfully!', 'success');
+        navigate('/customer/dashboard');
+      }
     } catch (err) {
       showToast(err.message || 'Login failed. Check your credentials.', 'error');
     } finally { setLoading(false); }

@@ -7,9 +7,9 @@ export const userApi = {
     return response.data;
   },
 
-  // GET /registration/users/{id}
+  // GET /registration/user/{id}
   getUser: async (id) => {
-    const response = await api.get(`/registration/users/${id}`);
+    const response = await api.get(`/registration/user/${id}`);
     return response.data;
   },
 
