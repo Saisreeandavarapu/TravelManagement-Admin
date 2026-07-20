@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -10,48 +10,36 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try {
-      const stored = localStorage.getItem('travel_admin_user');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+  // No localStorage — session lives only in React state
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const login = useCallback(async (email, password) => {
     setLoading(true);
     try {
-      // Spring Boot endpoint
-      const response = await axios.post(`https://travelmanagement-spring-boot-api.onrender.com/registration/login`, { email, password });
-      
-      if (response.data) {
-        setUser(response.data);
-        localStorage.setItem('travel_admin_user', JSON.stringify(response.data));
-        return response.data;
-      } else {
-        throw new Error('Invalid credentials');
-      }
+      // First find the user by email from allUsers, then use login endpoint
+      const allRes = await api.get('/registration/allUsers');
+      const allUsers = Array.isArray(allRes.data) ? allRes.data : [];
+      const match = allUsers.find(
+        (u) => u.email?.toLowerCase() === email.toLowerCase()
+      );
+
+      if (!match) throw new Error('No account found with this email.');
+
+      // GET /registration/login/{id}/{password}
+      const loginRes = await api.get(`/registration/login/${match.id}/${encodeURIComponent(password)}`);
+      const loggedUser = loginRes.data;
+
+      if (!loggedUser) throw new Error('Invalid credentials.');
+
+      setUser(loggedUser);
+      return loggedUser;
     } catch (error) {
       console.error('Login error:', error);
-      
-      // Fallback to mock admin if matching default credentials, or if backend fails
-      if (email === 'admin@example.com' && password === 'admin') {
-        const mockAdmin = {
-          id: 9999,
-          firstName: 'Admin',
-          lastName: 'User',
-          email: 'admin@example.com',
-          role: 'ADMIN',
-          status: 'ACTIVE'
-        };
-        setUser(mockAdmin);
-        localStorage.setItem('travel_admin_user', JSON.stringify(mockAdmin));
-        return mockAdmin;
-      }
-      
-      const message = error.response?.data?.message || error.message || 'Login failed. Please check your connection and try again.';
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        'Login failed. Please check your credentials.';
       throw new Error(message);
     } finally {
       setLoading(false);
@@ -60,7 +48,6 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem('travel_admin_user');
   }, []);
 
   const isAuthenticated = !!user;

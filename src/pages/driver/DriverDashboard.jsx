@@ -167,7 +167,6 @@ const DriverDashboard = () => {
       };
       const response = await userApi.updateUser(user.id, updatedUser);
       setUser({ ...user, ...response });
-      localStorage.setItem('travel_admin_user', JSON.stringify({ ...user, ...response }));
       showToast('Account details updated!', 'success');
       setEditingAccount(false);
     } catch (err) {

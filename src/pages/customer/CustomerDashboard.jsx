@@ -107,7 +107,6 @@ const CustomerDashboard = () => {
       
       const newUserObj = { ...user, ...response };
       setUser(newUserObj);
-      localStorage.setItem('travel_admin_user', JSON.stringify(newUserObj));
       
       showToast('Profile updated successfully!', 'success');
       setEditing(false);

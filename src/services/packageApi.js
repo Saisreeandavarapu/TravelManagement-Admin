@@ -19,9 +19,9 @@ export const packageApi = {
     return response.data;
   },
 
-  // PUT /Packages/update/{id}
+  // PUT /packages/update/{id}
   updatePackage: async (id, packageData) => {
-    const response = await api.put(`/Packages/update/${id}`, packageData);
+    const response = await api.put(`/packages/update/${id}`, packageData);
     return response.data;
   },
 
